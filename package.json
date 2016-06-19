@@ -1,0 +1,15 @@
+{
+  "name": "mileage_quantifier",
+  "version": "1.0.0",
+  "description": "A program to quickly and easily calculate traveled mileage ",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron ."
+  },
+  "author": "Clay James",
+  "license": "ISC",
+  "devDependencies": {
+    "electron-prebuilt": "^1.2.3"
+  }
+}
