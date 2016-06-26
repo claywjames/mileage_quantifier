@@ -9,24 +9,30 @@ const mapquest = {
   baseURL: 'http://www.mapquestapi.com/directions/v2/route?key=MkRTKx7DbBySjsya4hnVsQ0bxgQgnbSy',
 
   calculateMileage(addresses){
-
+    var url = this.baseURL + '&from=' + addresses[0];
+    for(let i = 1; i < addresses.length; i++){
+      url += '&to=' + addresses[i];
+    }
+    request(url, (error, response, body) => {
+      if(!error && response.statusCode == 200){
+        var results = JSON.parse(body)
+        console.log(results.route.distance);
+      }else{
+        console.log('error')
+      }
+    })
   }
 }
 
 const savedAddresses = {
   addressFile: 'addresses.txt',
   getAddress(location){
-    fs.readFile(this.addressFile, (err, data) => {
-      if(err) throw err;
-      var startIndex = data.indexOf(location)
-      if(startIndex != 1){
-        var endIndex = data.indexOf('\n', startIndex)
-        var locationString = data.toString('utf8', startIndex, endIndex)
-        return locationString.split('::')[1];
-      }else{
-        return false;
-      }
-    })
+    let addresses = fs.readFileSync(this.addressFile)
+    let startIndex = addresses.indexOf(location)
+    let endIndex = addresses.indexOf('\n', startIndex)
+    let locationAddressString = addresses.toString('utf8', startIndex, endIndex)
+    let address = locationAddressString.split('::')[1];
+    return address;
   },
   saveAddress(location, address){
     fs.appendFile(this.addressFile, location + '::' + address + '\n', (err) => {
@@ -34,10 +40,8 @@ const savedAddresses = {
     })
   },
   isLocation(location){
-    fs.readFile(this.addressFile, (err, data) => {
-      if(err) throw err;
-      return data.includes(location)
-    })
+    let addresses = fs.readFileSync(this.addressFile)
+    return addresses.includes(location)
   }
 }
 
@@ -84,9 +88,14 @@ submitButton.onclick = function(){
       savedAddresses.saveAddress(location, address)
     }else{
       locations[j] = inputs[i].value
+      //check if location exists
       j++
     }
   }
-  console.log(locations)
+  var addresses = [];
+  for(let i = 0; i < locations.length; i++){
+    addresses[i] = savedAddresses.getAddress(locations[i])
+  }
+  mapquest.calculateMileage(addresses)
   return false; //stop the form from attemping to send data somewhere and reloading page
 }
