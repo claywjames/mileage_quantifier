@@ -2,8 +2,16 @@
 <html>
   <head>
     <title>Mileage Calculator</title>
+    <link href = 'calculator.css' rel='stylesheet' type='text/css'>
   </head>
   <body>
+    <div id = 'settings'>
+      <form id = 'settingsForm'>
+        <label>Home Location: </label><input id = 'settingsHome'>
+        <label>Output file: </label><input id = 'settingsOutput'>
+        <input type = 'button' value = 'update' onclick = 'settings.update'>
+      </form>
+    </div>
     <form>
       <label>Date: <input id = 'date'></label><br>
       <label>Locations:</label><br>
@@ -14,6 +22,7 @@
       </div>
       <br><input id = 'submit', type = 'submit'>
     </form>
+    <div id = 'mileageResults'></div>
     <script>require('./app.js')</script>
   </body>
 </html>

@@ -7,6 +7,7 @@ const fs = require('fs')
 const DOM = {
   date: document.getElementById('date').value,
   locationsDiv: document.getElementById('locations'),
+  mileageDiv: document.getElementById('mileageResults'),
 
   getInputElements(){
     let childArray = Array.prototype.slice.call(this.locationsDiv.childNodes) //converts childNodes object list into an array
@@ -38,6 +39,9 @@ const DOM = {
   },
   createNewAddressInput(activeElement){
     activeElement.insertAdjacentHTML('afterend', '<label>Address: </label><input class="address">')
+  },
+  reportMileage(mileage){
+    this.mileageDiv.innerHTML = mileage;
   }
 }
 
@@ -54,7 +58,7 @@ const mapquest = {
     request(url, (error, response, body) => {
       if(!error && response.statusCode == 200){
         var results = JSON.parse(body)
-        console.log(results.route.distance);
+        DOM.reportMileage(results.route.distance)
       }else{
         console.log('error')
       }

@@ -1,0 +1,41 @@
+html, body{
+  height: 100%;
+  margin: 0;
+}
+
+#settings {
+  position: relative;
+  background-color: #CAD8EC;
+  top: 1%;
+  left: 1%;
+  height: 5%;
+  width: 98%;
+  border-radius: 20px;
+}
+
+#settingsForm {
+  position: relative;
+  top: 30%;
+  width: 100%;
+  text-align: center;
+}
+
+#settingsForm *{
+  display: inline-block;
+}
+
+body > form{
+  position: absolute;
+  top: 7%;
+  left: 20%;
+}
+
+#mileageResults {
+  position: relative;
+  float: right;
+  top: 2%;
+  right: 5%;
+  width: 5%;
+  height: 5%;
+  border: 1px solid black;
+}
