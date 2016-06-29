@@ -18,19 +18,12 @@ const DOM = {
     return inputElements;
   },
   setHomeInputs(){
+    var settingsHome = document.getElementById('settingsHome');
+    settingsHome.value = savedAddresses.getAddress('HOME');
     var inputNodes = this.locationsDiv.childNodes;
     for(var child = inputNodes[0]; child !== null; child = child.nextElementSibling){
       if(child.className == 'home'){
         child.value = 'HOME';
-      }
-    }
-  },
-  deleteHomeInputs(){
-    var inputNodes = this.locationsDiv.childNodes;
-    for(var child = inputNodes[0]; child !== null; child = child.nextElementSibling){
-      if(child.className == 'home'){
-        this.locationsDiv.removeChild(child);
-        child = inputNodes[0];
       }
     }
   },
@@ -44,7 +37,6 @@ const DOM = {
     this.mileageDiv.innerHTML = mileage;
   }
 }
-
 
 const mapquest = {
   //The object that interacts with the mapquest API
@@ -68,6 +60,12 @@ const mapquest = {
 
 const savedAddresses = {
   addressFile: 'addresses.txt',
+
+  createFile(){
+    fs.stat('addresses.txt', (err) => {
+      if(err && err.code == 'ENOENT') fs.closeSync(fs.openSync('addresses.txt', 'w'))
+    })
+  },
   getAddress(location){
     let addresses = fs.readFileSync(this.addressFile)
     let startIndex = addresses.indexOf(location)
@@ -77,9 +75,17 @@ const savedAddresses = {
     return address;
   },
   saveAddress(location, address){
-    fs.appendFile(this.addressFile, location + '::' + address + '\n', (err) => {
-      if(err) throw err;
-    })
+    if(this.isLocation(location)){
+      let file = fs.readFileSync(this.addressFile, 'utf8');
+      let oldAddress = this.getAddress(location);
+      let regex = new RegExp(location + '::' + oldAddress, 'g');
+      let result = file.replace(regex, location + '::' + address + '\n');
+      fs.writeFileSync(this.addressFile, result, 'utf8')
+    }else{
+      fs.appendFile(this.addressFile, location + '::' + address + '\n', (err) => {
+        if(err) throw err;
+      })
+    }
   },
   isLocation(location){
     let addresses = fs.readFileSync(this.addressFile)
@@ -87,24 +93,56 @@ const savedAddresses = {
   }
 }
 
+const settingsFile = {
+  file: 'settings.txt',
+  outputFile: null,
+
+  createFile(){
+    fs.stat('settings.txt', (err) => {
+      if(err && err.code == 'ENOENT'){
+        fs.appendFile('settings.txt', 'Output file::\n')
+      }
+      let fileString = fs.readFileSync(this.file, 'utf8');
+      let regex = new RegExp('Output file::.*', 'g');
+      let result = regex.exec(fileString)[0].split('::')[1];
+      this.outputFile = result;
+      document.getElementById('settingsOutput').value = result;
+    })
+  },
+  setOutputFile(newOutputFile){
+    let fileString = fs.readFileSync(this.file, 'utf8');
+    let regex = new RegExp('Output file::.*', 'g');
+    let result = fileString.replace(regex, 'Output file::' + newOutputFile + '\n');
+    fs.writeFileSync(this.file, result, 'utf8');
+  }
+}
+
 
 //initialize
 setTimeout(function(){
   //create saved addresses file if it doesn't exist
-  fs.stat('addresses.txt', (err) => {
-    if(err && err.code == 'ENOENT') fs.closeSync(fs.openSync('addresses.txt', 'w'))
-  })
+  document.getElementById('settingsButton').onclick = updateSettings;
+  settingsFile.createFile()
+  savedAddresses.createFile()
   if(savedAddresses.isLocation('HOME')){
     DOM.setHomeInputs();
   }else{
     alert('You have no set home location.  Setting a home location will reduce '+
     'the work you need to do.  To learn about home locations, please read the instructions, '+
-    'which you can access from the start page.  To set a home location, visit the settings page '+
-    'which is also accesable from the start page.');
-    DOM.deleteHomeInputs();
+    'which you can access from the start page.  To set a home location, enter it into the box '+
+    'at the top of the page.');
+  }
+  if(settingsFile.outputFile == ""){
+    alert('Please enter an output file.  The output file must be an excel file with file extension .xlsx');
   }
 }, 100)
 
+function updateSettings(){
+  const settingsHome = document.getElementById('settingsHome');
+  const settingsOutput = document.getElementById('settingsOutput');
+  savedAddresses.saveAddress('HOME', settingsHome.value);
+  settingsFile.setOutputFile(settingsOutput.value);
+}
 
 document.addEventListener('keydown', event => {
   if(event.keyCode === 9){ //tab key
