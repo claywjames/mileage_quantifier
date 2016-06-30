@@ -13,6 +13,7 @@
     "electron-prebuilt": "^1.2.3"
   },
   "dependencies": {
-    "request": "^2.72.0"
+    "request": "^2.72.0",
+    "xlsx": "^0.8.0"
   }
 }

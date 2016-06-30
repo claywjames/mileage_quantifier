@@ -2,6 +2,7 @@
 
 const request = require('request')
 const fs = require('fs')
+const xlsx = require('xlsx')
 
 
 const DOM = {
@@ -95,18 +96,12 @@ const savedAddresses = {
 
 const settingsFile = {
   file: 'settings.txt',
-  outputFile: null,
 
   createFile(){
     fs.stat('settings.txt', (err) => {
       if(err && err.code == 'ENOENT'){
         fs.appendFile('settings.txt', 'Output file::\n')
       }
-      let fileString = fs.readFileSync(this.file, 'utf8');
-      let regex = new RegExp('Output file::.*', 'g');
-      let result = regex.exec(fileString)[0].split('::')[1];
-      this.outputFile = result;
-      document.getElementById('settingsOutput').value = result;
     })
   },
   setOutputFile(newOutputFile){
@@ -114,6 +109,31 @@ const settingsFile = {
     let regex = new RegExp('Output file::.*', 'g');
     let result = fileString.replace(regex, 'Output file::' + newOutputFile + '\n');
     fs.writeFileSync(this.file, result, 'utf8');
+  },
+  getOutputFile(){
+    let fileString = fs.readFileSync(this.file, 'utf8');
+    let regex = new RegExp('Output file::.*', 'g');
+    let result = regex.exec(fileString)[0].split('::')[1];
+    return result;
+  }
+}
+
+class excel {
+  constructor(file){
+    this.file = file;
+    this.workbook = xlsx.readFile(this.file)
+    this.worksheet = this.workbook.Sheets[this.workbook.SheetNames[0]];
+  }
+
+  findEmptyRow(){
+    for(var cell in this.worksheet){
+      if(cell[0] === '!') continue;
+      console.log(this.worksheet[cell].v)
+    }
+  }
+
+  writeInfo(date, locations, mileage){
+    this.findEmptyRow();
   }
 }
 
@@ -132,9 +152,18 @@ setTimeout(function(){
     'which you can access from the start page.  To set a home location, enter it into the box '+
     'at the top of the page.');
   }
-  if(settingsFile.outputFile == ""){
+  var outputFile = settingsFile.getOutputFile();
+  document.getElementById('settingsOutput').value = outputFile;
+  if(outputFile == ""){
     alert('Please enter an output file.  The output file must be an excel file with file extension .xlsx');
   }
+  fs.stat(outputFile, (err) => {
+    if(err && err.code == 'ENOENT') return 0;
+    const excelFile = new excel(outputFile);
+    excelFile.findEmptyRow('g','f','t');
+    console.log('created')
+  })
+
 }, 100)
 
 function updateSettings(){
