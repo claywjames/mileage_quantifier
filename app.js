@@ -2,14 +2,39 @@
 
 const request = require('request')
 const fs = require('fs')
-const xlsx = require('xlsx')
+const xlsx = require('xlsx-style')
 
+
+const currentInfo = {
+  excelFile: null,
+  date: 0,
+  locations: [],
+  mileage: 0,
+
+  getLocationString(){
+    var locationString = "";
+    for(let i = 0; i < this.locations.length; i++){
+      locationString = locationString + this.locations[i] + ', ';
+    }
+    console.log(locationString)
+    locationString = locationString.slice(0, locationString.length - 2) //remove trailing comma
+    console.log(locationString)
+    return locationString;
+  },
+  report(){
+    DOM.reportMileage(this.mileage);
+    let locations = this.getLocationString()
+    this.excelFile.writeInfo(this.date, locations, this.mileage)
+  }
+}
 
 const DOM = {
-  date: document.getElementById('date').value,
   locationsDiv: document.getElementById('locations'),
   mileageDiv: document.getElementById('mileageResults'),
 
+  getDate(){
+    return document.getElementById('date').value;
+  },
   getInputElements(){
     let childArray = Array.prototype.slice.call(this.locationsDiv.childNodes) //converts childNodes object list into an array
     let inputElements = childArray.filter((element) => {
@@ -51,7 +76,9 @@ const mapquest = {
     request(url, (error, response, body) => {
       if(!error && response.statusCode == 200){
         var results = JSON.parse(body)
-        DOM.reportMileage(results.route.distance)
+        var mileage = results.route.distance;
+        currentInfo.mileage = mileage;
+        currentInfo.report()
       }else{
         console.log('error')
       }
@@ -121,19 +148,28 @@ const settingsFile = {
 class excel {
   constructor(file){
     this.file = file;
-    this.workbook = xlsx.readFile(this.file)
+    this.workbook = xlsx.readFile(this.file, {cellNF: true, cellStyle: true})
     this.worksheet = this.workbook.Sheets[this.workbook.SheetNames[0]];
   }
 
   findEmptyRow(){
-    for(var cell in this.worksheet){
-      if(cell[0] === '!') continue;
-      console.log(this.worksheet[cell].v)
-    }
+    let range = this.worksheet['!ref'];
+    let lastCell = range.split(':')[1];
+    let lastRow = Number(lastCell.substring(1));
+    return lastRow + 1;
   }
 
   writeInfo(date, locations, mileage){
-    this.findEmptyRow();
+    console.log(this.worksheet['A2'].w)
+    console.log(this.worksheet['A2'].t)
+    console.log(this.worksheet['A2'].s)
+    console.log(this.worksheet['A2'].z)
+    let row = this.findEmptyRow();
+    this.worksheet['!ref'] = 'A1:C' + row.toString();
+    this.worksheet['A' + row.toString()] = {w: undefined, v: date, t: 's'};
+    this.worksheet['B' + row.toString()] = {w: undefined, v: locations, t: 's'};
+    this.worksheet['C' + row.toString()] = {w: undefined, v: mileage, t: 'n'};
+    xlsx.writeFile(this.workbook, this.file, {cellDates: true});
   }
 }
 
@@ -159,9 +195,7 @@ setTimeout(function(){
   }
   fs.stat(outputFile, (err) => {
     if(err && err.code == 'ENOENT') return 0;
-    const excelFile = new excel(outputFile);
-    excelFile.findEmptyRow('g','f','t');
-    console.log('created')
+    currentInfo.excelFile = new excel(outputFile);
   })
 
 }, 100)
@@ -193,7 +227,7 @@ document.addEventListener('keydown', event => {
 
 const submitButton = document.getElementById('submit')
 submitButton.onclick = function(){
-  var date = DOM.date;
+  currentInfo.date = DOM.getDate();
   var inputElements = DOM.getInputElements()
   var locations = []
   for(let i = 0; i < inputElements.length; i++){
@@ -215,6 +249,7 @@ submitButton.onclick = function(){
       }
     }
   }
+  currentInfo.locations = locations;
   var addresses = [];
   for(let i = 0; i < locations.length; i++){
     addresses[i] = savedAddresses.getAddress(locations[i])
