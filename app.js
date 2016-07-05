@@ -16,9 +16,7 @@ const currentInfo = {
     for(let i = 0; i < this.locations.length; i++){
       locationString = locationString + this.locations[i] + ', ';
     }
-    console.log(locationString)
     locationString = locationString.slice(0, locationString.length - 2) //remove trailing comma
-    console.log(locationString)
     return locationString;
   },
   report(){
@@ -117,7 +115,11 @@ const savedAddresses = {
   },
   isLocation(location){
     let addresses = fs.readFileSync(this.addressFile)
-    return addresses.includes(location)
+    let startIndex = addresses.indexOf(location)
+    if(startIndex === -1) return false; //file doesn't include location string
+    let endIndex = addresses.indexOf('::', startIndex)
+    if(location.length === (endIndex - startIndex)) return true; //make sure the input isn't just part of a full location name
+    return false;
   }
 }
 
@@ -208,10 +210,9 @@ function updateSettings(){
 }
 
 document.addEventListener('keydown', event => {
-  if(event.keyCode === 9){ //tab key
-    var inputElements = DOM.getInputElements();
-    //var locationElements = Array.prototype.slice.call(DOM.locationsDiv.childNodes) //converts childNodes object list into an array
-    if(inputElements.includes(document.activeElement)){ //if a location input has focus
+  var inputElements = DOM.getInputElements();
+  if(inputElements.includes(document.activeElement)){
+    if(event.keyCode === 9){
       if(document.activeElement.class === 'address'){
         DOM.createNewLocationInput(document.activeElement);
       }else{
@@ -221,6 +222,18 @@ document.addEventListener('keydown', event => {
           DOM.createNewAddressInput(document.activeElement);
         }
       }
+    }else{
+      //this function occurs before the element value is updated; therefore it is done here manually
+      var input = "";
+      var location = document.activeElement.value;
+      if((65 <= event.keyCode && event.keyCode <= 90) || event.keyCode == 32){
+        input = String.fromCharCode(event.keyCode);
+        if(!event.shiftKey) input = input.toLowerCase();
+        location += input;
+      }else if(event.keyCode == 8){
+        location = location.slice(0, location.length - 1)
+      }
+      document.activeElement.style.color = savedAddresses.isLocation(location) ? 'green' : 'red';
     }
   }
 })
