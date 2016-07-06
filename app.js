@@ -12,6 +12,9 @@ const currentInfo = {
   mileage: 0,
 
   getLocationString(){
+    var locationArray = this.locations;
+    locationArray.shift()
+    locationArray.pop()
     var locationString = "";
     for(let i = 0; i < this.locations.length; i++){
       locationString = locationString + this.locations[i] + ', ';
@@ -27,12 +30,11 @@ const currentInfo = {
 }
 
 const DOM = {
-  locationsDiv: document.getElementById('locations'),
   mileageDiv: document.getElementById('mileageResults'),
 
-  getDate(){
-    return document.getElementById('date').value;
-  },
+  getDate(){ return document.getElementById('date').value},
+  getLocationsDiv(){ return document.getElementById('locations')},
+  getInputForm(){ return document.getElementById('locationsForm')},
   getInputElements(){
     let childArray = Array.prototype.slice.call(this.locationsDiv.childNodes) //converts childNodes object list into an array
     let inputElements = childArray.filter((element) => {
@@ -44,7 +46,7 @@ const DOM = {
   setHomeInputs(){
     var settingsHome = document.getElementById('settingsHome');
     settingsHome.value = savedAddresses.getAddress('HOME');
-    var inputNodes = this.locationsDiv.childNodes;
+    var inputNodes = this.getLocationsDiv().childNodes;
     for(var child = inputNodes[0]; child !== null; child = child.nextElementSibling){
       if(child.className == 'home'){
         child.value = 'HOME';
@@ -59,6 +61,17 @@ const DOM = {
   },
   reportMileage(mileage){
     this.mileageDiv.innerHTML = mileage;
+  },
+  resetInputForm(){
+    this.getInputForm().innerHTML =
+    "<label>Date: <input id = 'date'></label><br>" +
+    "<label>Locations:</label><br>" +
+    "<div id = 'locations'>" +
+      "<input readonly class = 'home'>"+
+      "<br><input>" +
+      "<br><input readonly class = 'home'>" +
+    "</div>" +
+    "<br><input id = 'submit', type = 'submit'>";
   }
 }
 
@@ -74,7 +87,7 @@ const mapquest = {
     request(url, (error, response, body) => {
       if(!error && response.statusCode == 200){
         var results = JSON.parse(body)
-        var mileage = results.route.distance;
+        var mileage = Math.round(results.route.distance)
         currentInfo.mileage = mileage;
         currentInfo.report()
       }else{
@@ -86,6 +99,7 @@ const mapquest = {
 
 const savedAddresses = {
   addressFile: 'addresses.txt',
+  locationList: [],
 
   createFile(){
     fs.stat('addresses.txt', (err) => {
@@ -108,17 +122,31 @@ const savedAddresses = {
       let result = file.replace(regex, location + '::' + address + '\n');
       fs.writeFileSync(this.addressFile, result, 'utf8')
     }else{
-      fs.appendFile(this.addressFile, location + '::' + address + '\n', (err) => {
-        if(err) throw err;
-      })
+      fs.appendFileSync(this.addressFile, location + '::' + address + '\n')
     }
   },
+  generateLocationList(){
+    var addressFile = fs.readFileSync(this.addressFile),
+        locations = [],
+        startIndex = 0,
+        endIndex = 0,
+        offset = 0,
+        i = 1;
+    while((startIndex !== -1) && (endIndex !== -1)){
+      endIndex = addressFile.indexOf('::', offset)
+      locations[i] = addressFile.toString('utf8', startIndex, endIndex)
+      offset = endIndex;
+      startIndex = addressFile.indexOf('\n', offset) + 1;
+      offset = startIndex;
+      i++
+    }
+    this.locationList = locations;
+  },
   isLocation(location){
-    let addresses = fs.readFileSync(this.addressFile)
-    let startIndex = addresses.indexOf(location)
-    if(startIndex === -1) return false; //file doesn't include location string
-    let endIndex = addresses.indexOf('::', startIndex)
-    if(location.length === (endIndex - startIndex)) return true; //make sure the input isn't just part of a full location name
+    let locations = this.locationList;
+    for(let i = 0; i < locations.length; i++){
+      if(locations[i] == location) return true;
+    }
     return false;
   }
 }
@@ -162,10 +190,6 @@ class excel {
   }
 
   writeInfo(date, locations, mileage){
-    console.log(this.worksheet['A2'].w)
-    console.log(this.worksheet['A2'].t)
-    console.log(this.worksheet['A2'].s)
-    console.log(this.worksheet['A2'].z)
     let row = this.findEmptyRow();
     this.worksheet['!ref'] = 'A1:C' + row.toString();
     this.worksheet['A' + row.toString()] = {w: undefined, v: date, t: 's'};
@@ -176,12 +200,11 @@ class excel {
 }
 
 
-//initialize
-setTimeout(function(){
-  //create saved addresses file if it doesn't exist
+function initialize(){
   document.getElementById('settingsButton').onclick = updateSettings;
   settingsFile.createFile()
   savedAddresses.createFile()
+  savedAddresses.generateLocationList()
   if(savedAddresses.isLocation('HOME')){
     DOM.setHomeInputs();
   }else{
@@ -199,8 +222,9 @@ setTimeout(function(){
     if(err && err.code == 'ENOENT') return 0;
     currentInfo.excelFile = new excel(outputFile);
   })
+}
+setTimeout(initialize, 50) //wait 50ms so the document elements will render(window.onload does not work)
 
-}, 100)
 
 function updateSettings(){
   const settingsHome = document.getElementById('settingsHome');
@@ -213,7 +237,7 @@ document.addEventListener('keydown', event => {
   var inputElements = DOM.getInputElements();
   if(inputElements.includes(document.activeElement)){
     if(event.keyCode === 9){
-      if(document.activeElement.class === 'address'){
+      if(document.activeElement.className === 'address'){
         DOM.createNewLocationInput(document.activeElement);
       }else{
         if(savedAddresses.isLocation(document.activeElement.value)){
@@ -250,6 +274,7 @@ submitButton.onclick = function(){
       savedAddresses.saveAddress(location, address)
     }
   }
+  savedAddresses.generateLocationList()
   var j = 0;
   for(let i = 0; i < inputElements.length; i++){
     if(inputElements[i].className == "" || inputElements[i].className == 'home'){
@@ -267,6 +292,8 @@ submitButton.onclick = function(){
   for(let i = 0; i < locations.length; i++){
     addresses[i] = savedAddresses.getAddress(locations[i])
   }
-  mapquest.calculateMileage(addresses)
+  //mapquest.calculateMileage(addresses)
+  DOM.resetInputForm()
+  if(savedAddresses.isLocation('HOME')) DOM.setHomeInputs()
   return false; //stop the form from attemping to send data somewhere and reloading page
 }

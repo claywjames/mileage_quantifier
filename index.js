@@ -4,10 +4,7 @@ const {BrowserWindow} = require('electron')
 
 
 app.on('ready', () => {
-  let mainWindow = new BrowserWindow({
-    width: 900,
-    height: 600
-  })
+  let mainWindow = new BrowserWindow()
   mainWindow.maximize()
   mainWindow.loadURL('file://' + __dirname + '/index.html')
 })
