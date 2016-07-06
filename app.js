@@ -3,6 +3,7 @@
 const request = require('request')
 const fs = require('fs')
 const xlsx = require('xlsx-style')
+const fuzzy = require('fuzzy')
 
 
 const currentInfo = {
@@ -35,8 +36,9 @@ const DOM = {
   getDate(){ return document.getElementById('date').value},
   getLocationsDiv(){ return document.getElementById('locations')},
   getInputForm(){ return document.getElementById('locationsForm')},
+  getSubmitButton(){ return document.getElementById('submit')},
   getInputElements(){
-    let childArray = Array.prototype.slice.call(this.locationsDiv.childNodes) //converts childNodes object list into an array
+    let childArray = Array.prototype.slice.call(this.getLocationsDiv().childNodes) //converts childNodes object list into an array
     let inputElements = childArray.filter((element) => {
       if(element.tagName === 'INPUT') return true;
       return false;
@@ -59,6 +61,9 @@ const DOM = {
   createNewAddressInput(activeElement){
     activeElement.insertAdjacentHTML('afterend', '<label>Address: </label><input class="address">')
   },
+  displaySuggestions(activeElement, suggestions){
+    //display that shit
+  },
   reportMileage(mileage){
     this.mileageDiv.innerHTML = mileage;
   },
@@ -72,6 +77,7 @@ const DOM = {
       "<br><input readonly class = 'home'>" +
     "</div>" +
     "<br><input id = 'submit', type = 'submit'>";
+    this.getSubmitButton().onclick = function(){submit()};
   }
 }
 
@@ -257,13 +263,22 @@ document.addEventListener('keydown', event => {
       }else if(event.keyCode == 8){
         location = location.slice(0, location.length - 1)
       }
-      document.activeElement.style.color = savedAddresses.isLocation(location) ? 'green' : 'red';
+      if(savedAddresses.isLocation(location)){
+        document.activeElement.style.color = 'green';
+      }else{
+        document.activeElement.style.color = 'red';
+        var suggestions = fuzzy.filter(location, savedAddresses.locationList);
+        while(suggestions.length > 5) suggestions.pop()
+        suggestions = suggestions.map((suggestion) => {return suggestion.string})
+        //DOM.displaySuggestions(document.activeElement, suggestions)
+        console.log(suggestions)
+      }
     }
   }
 })
 
-const submitButton = document.getElementById('submit')
-submitButton.onclick = function(){
+DOM.getSubmitButton().onclick = function(){submit()};
+function submit(){
   currentInfo.date = DOM.getDate();
   var inputElements = DOM.getInputElements()
   var locations = []
@@ -292,7 +307,7 @@ submitButton.onclick = function(){
   for(let i = 0; i < locations.length; i++){
     addresses[i] = savedAddresses.getAddress(locations[i])
   }
-  //mapquest.calculateMileage(addresses)
+  mapquest.calculateMileage(addresses)
   DOM.resetInputForm()
   if(savedAddresses.isLocation('HOME')) DOM.setHomeInputs()
   return false; //stop the form from attemping to send data somewhere and reloading page
