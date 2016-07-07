@@ -40,12 +40,14 @@ body > form{
   border: 1px solid black;
 }
 
-.suggestionBox {
-  position: relative;
+#suggestionBox {
+  position: absolute;
+  top: 25%;
+  left: 40%;
   border: 1px solid black;
-  width: 80%;
+  width: 20%;
 }
 
 .suggestion {
-  border: 1px solid black;
+  border: 0.5px solid black;
 }

@@ -61,15 +61,31 @@ const DOM = {
   createNewAddressInput(activeElement){
     activeElement.insertAdjacentHTML('afterend', '<label>Address: </label><input class="address">')
   },
-  displaySuggestions(activeElement, suggestions){
-    if(!document.getElementsByClassName('suggestionBox')[0]){
-      activeElement.insertAdjacentHTML('afterend', '<div class = "suggestionBox"></div>');
-      var suggestionBox = document.getElementsByClassName('suggestionBox')[0]
+  displaySuggestions(suggestions){
+    if(!document.getElementById('suggestionBox')){
+      var suggestionBox = document.createElement('div');
+      suggestionBox.id = 'suggestionBox';
+      document.body.appendChild(suggestionBox)
       for(let i = 0; i < suggestions.length; i++){
         let suggestion = document.createElement('div');
-        suggestion.innerHTML = suggestions[i];
+        suggestion.innerHTML = (i + 1).toString() + '.  ' + suggestions[i];
         suggestion.className = 'suggestion';
         suggestionBox.appendChild(suggestion)
+      }
+    }else{
+      var suggestionBox = document.getElementById('suggestionBox')
+      var suggestionElements = document.getElementsByClassName('suggestion');
+      while(suggestions.length != suggestionElements.length){
+        if(suggestions.length < suggestionElements.length){
+          suggestionBox.removeChild(suggestionBox.lastChild)
+        }else{
+          let newSuggestion = document.createElement('div');
+          newSuggestion.className = 'suggestion';
+          suggestionBox.appendChild(newSuggestion);
+        }
+      }
+      for(let i = 0; i < suggestions.length; i++){
+        suggestionElements[i].innerHTML = (i + 1).toString() + '.  ' + suggestions[i];
       }
     }
   },
@@ -151,7 +167,9 @@ const savedAddresses = {
         i = 1;
     while((startIndex !== -1) && (endIndex !== -1)){
       endIndex = addressFile.indexOf('::', offset)
-      locations[i] = addressFile.toString('utf8', startIndex, endIndex)
+      if(addressFile.toString('utf8', startIndex, endIndex).length > 0){
+        locations[i] = addressFile.toString('utf8', startIndex, endIndex)
+      }
       offset = endIndex;
       startIndex = addressFile.indexOf('\n', offset) + 1;
       offset = startIndex;
@@ -275,11 +293,11 @@ document.addEventListener('keydown', event => {
       //this function occurs before the element value is updated; therefore it is done here manually
       var input = "";
       var location = document.activeElement.value;
-      if((65 <= event.keyCode && event.keyCode <= 90) || event.keyCode == 32){
+      if((65 <= event.keyCode && event.keyCode <= 90) || event.keyCode == 32){ //letter key or spacebar
         input = String.fromCharCode(event.keyCode);
         if(!event.shiftKey) input = input.toLowerCase();
         location += input;
-      }else if(event.keyCode == 8){
+      }else if(event.keyCode == 8){ //backspace
         location = location.slice(0, location.length - 1)
       }
       if(savedAddresses.isLocation(location)){
@@ -289,7 +307,7 @@ document.addEventListener('keydown', event => {
         var suggestions = fuzzy.filter(location, savedAddresses.locationList);
         while(suggestions.length > 5) suggestions.pop()
         suggestions = suggestions.map((suggestion) => {return suggestion.string})
-        DOM.displaySuggestions(document.activeElement, suggestions)
+        DOM.displaySuggestions(suggestions)
       }
     }
   }
