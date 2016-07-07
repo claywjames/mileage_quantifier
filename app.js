@@ -117,9 +117,11 @@ const savedAddresses = {
   locationList: [],
 
   createFile(){
-    fs.stat('addresses.txt', (err) => {
-      if(err && err.code == 'ENOENT') fs.closeSync(fs.openSync('addresses.txt', 'w'))
-    })
+    try{
+      let file = fs.statSync('addresses.txt')
+    } catch(err){
+      if(err.code == 'ENOENT') fs.closeSync(fs.openSync('addresses.txt', 'w'))
+    }
   },
   getAddress(location){
     let addresses = fs.readFileSync(this.addressFile)
@@ -170,11 +172,11 @@ const settingsFile = {
   file: 'settings.txt',
 
   createFile(){
-    fs.stat('settings.txt', (err) => {
-      if(err && err.code == 'ENOENT'){
-        fs.appendFile('settings.txt', 'Output file::\n')
-      }
-    })
+    try{
+      let file = fs.statSync('addresses.txt')
+    }catch(err){
+      if(err.code == 'ENOENT') fs.appendFileSync('settings.txt', 'Output file::\n')
+    }
   },
   setOutputFile(newOutputFile){
     let fileString = fs.readFileSync(this.file, 'utf8');
@@ -232,11 +234,12 @@ function initialize(){
   document.getElementById('settingsOutput').value = outputFile;
   if(outputFile == ""){
     alert('Please enter an output file.  The output file must be an excel file with file extension .xlsx');
+  }else{
+    fs.stat(outputFile, (err) => {
+      if(err && err.code == 'ENOENT'){alert('Your output file cannot be found')}
+      else{currentInfo.excelFile = new excel(outputFile)}
+    })
   }
-  fs.stat(outputFile, (err) => {
-    if(err && err.code == 'ENOENT') return 0;
-    currentInfo.excelFile = new excel(outputFile);
-  })
 }
 setTimeout(initialize, 50) //wait 50ms so the document elements will render(window.onload does not work)
 
@@ -245,7 +248,14 @@ function updateSettings(){
   const settingsHome = document.getElementById('settingsHome');
   const settingsOutput = document.getElementById('settingsOutput');
   savedAddresses.saveAddress('HOME', settingsHome.value);
-  settingsFile.setOutputFile(settingsOutput.value);
+  DOM.setHomeInputs();
+  fs.stat(settingsOutput.value, err => {
+    if(err && err.code == 'ENOENT'){alert('Cannot find ' + settingsOutput.value)}
+    else{
+      settingsFile.setOutputFile(settingsOutput.value)
+      currentInfo.excelFile = new excel(settingsOutput.value)
+    }
+  })
 }
 
 document.addEventListener('keydown', event => {
@@ -287,6 +297,14 @@ document.addEventListener('keydown', event => {
 
 DOM.getSubmitButton().onclick = function(){submit()};
 function submit(){
+  if(!currentInfo.excelFile){
+    alert('Please enter a valid output file');
+    return false;
+  }
+  if(!savedAddresses.isLocation('HOME')){
+    alert('Please enter a home location');
+    return false;
+  }
   currentInfo.date = DOM.getDate();
   var inputElements = DOM.getInputElements()
   var locations = []
