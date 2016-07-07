@@ -63,6 +63,7 @@ const DOM = {
   },
   displaySuggestions(suggestions){
     if(!document.getElementById('suggestionBox')){
+      if(suggestions.length == 0) return false;
       var suggestionBox = document.createElement('div');
       suggestionBox.id = 'suggestionBox';
       document.body.appendChild(suggestionBox)
@@ -74,6 +75,7 @@ const DOM = {
       }
     }else{
       var suggestionBox = document.getElementById('suggestionBox')
+      if(suggestions.length == 0) document.body.removeChild(suggestionBox);
       var suggestionElements = document.getElementsByClassName('suggestion');
       while(suggestions.length != suggestionElements.length){
         if(suggestions.length < suggestionElements.length){
@@ -289,6 +291,17 @@ document.addEventListener('keydown', event => {
           DOM.createNewAddressInput(document.activeElement);
         }
       }
+    }else if(49 <= event.keyCode && event.keyCode <= 57){
+      if(document.getElementById('suggestionBox')){
+        if(event.ctrlKey){
+          let suggestions = document.getElementsByClassName('suggestion')
+          let selection = event.keyCode - 49;
+          let selectedSuggestion = suggestions[selection].innerHTML.slice(4);
+          document.activeElement.value = selectedSuggestion;
+          document.activeElement.style.color = 'green';
+          document.body.removeChild(document.getElementById('suggestionBox'))
+        }
+      }
     }else{
       //this function occurs before the element value is updated; therefore it is done here manually
       var input = "";
@@ -302,6 +315,9 @@ document.addEventListener('keydown', event => {
       }
       if(savedAddresses.isLocation(location)){
         document.activeElement.style.color = 'green';
+        if(document.getElementById('suggestionBox')){
+          document.body.removeChild(document.getElementById('suggestionBox'));
+        }
       }else{
         document.activeElement.style.color = 'red';
         var suggestions = fuzzy.filter(location, savedAddresses.locationList);
