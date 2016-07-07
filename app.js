@@ -62,7 +62,16 @@ const DOM = {
     activeElement.insertAdjacentHTML('afterend', '<label>Address: </label><input class="address">')
   },
   displaySuggestions(activeElement, suggestions){
-    //display that shit
+    if(!document.getElementsByClassName('suggestionBox')[0]){
+      activeElement.insertAdjacentHTML('afterend', '<div class = "suggestionBox"></div>');
+      var suggestionBox = document.getElementsByClassName('suggestionBox')[0]
+      for(let i = 0; i < suggestions.length; i++){
+        let suggestion = document.createElement('div');
+        suggestion.innerHTML = suggestions[i];
+        suggestion.className = 'suggestion';
+        suggestionBox.appendChild(suggestion)
+      }
+    }
   },
   reportMileage(mileage){
     this.mileageDiv.innerHTML = mileage;
@@ -270,8 +279,7 @@ document.addEventListener('keydown', event => {
         var suggestions = fuzzy.filter(location, savedAddresses.locationList);
         while(suggestions.length > 5) suggestions.pop()
         suggestions = suggestions.map((suggestion) => {return suggestion.string})
-        //DOM.displaySuggestions(document.activeElement, suggestions)
-        console.log(suggestions)
+        DOM.displaySuggestions(document.activeElement, suggestions)
       }
     }
   }

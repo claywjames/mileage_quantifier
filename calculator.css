@@ -39,3 +39,13 @@ body > form{
   height: 5%;
   border: 1px solid black;
 }
+
+.suggestionBox {
+  position: relative;
+  border: 1px solid black;
+  width: 80%;
+}
+
+.suggestion {
+  border: 1px solid black;
+}
