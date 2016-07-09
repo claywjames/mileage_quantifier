@@ -1,10 +1,19 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Mileage Calculator</title>
     <link href = 'calculator.css' rel='stylesheet' type='text/css'>
+    <link href = 'titleBar.css' rel = 'stylesheet' type = 'text/css'>
   </head>
   <body>
+    <div id = 'titleBar'>
+      <div id = 'title'>Mileage Quantifier</div>
+      <div id = 'titleBarButtons'>
+        <button id = 'minButton'>-</button>
+        <button id = 'maxButton'>+</button>
+        <button id = 'closeButton'>x</button>
+      </div>
+    </div>
+    <script>require('./titleBar.js')</script>
     <div id = 'settings'>
       <form id = 'settingsForm'>
         <label>Home Location: </label><input id = 'settingsHome'>
