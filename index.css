@@ -1,0 +1,31 @@
+body {
+    background-image: url(./images/open_road.jpg);
+    padding: 0px;
+    border: 0px;
+}
+
+header {
+    font-size: 72px;
+    font-family: sans-serif;
+    padding: 0px;
+    border: 0px;
+    width: 100%;
+    text-align: center;
+}
+
+header ~ button {
+    position: absolute;
+    background-color: #325392;
+    border: none;
+    font-size: 40px;
+    font-family: sans-serif;
+    width: 20%;
+    height: 20%;
+    left: 40%;
+    top: 30%;
+}
+
+button > a {
+    color: white;
+    text-decoration: none;
+}
