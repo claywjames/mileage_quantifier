@@ -30,6 +30,11 @@ body > form{
   left: 20%;
 }
 
+.deleteInput {
+  width: 25px;
+  margin-left: -25px;
+}
+
 #mileageResults {
   position: relative;
   float: right;

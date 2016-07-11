@@ -33,7 +33,7 @@ const currentInfo = {
 const DOM = {
   mileageDiv: document.getElementById('mileageResults'),
 
-  getDate(){ return document.getElementById('date').value},
+  getDateElement(){ return document.getElementById('date')},
   getLocationsDiv(){ return document.getElementById('locations')},
   getInputForm(){ return document.getElementById('locationsForm')},
   getSubmitButton(){ return document.getElementById('submit')},
@@ -56,7 +56,15 @@ const DOM = {
     }
   },
   createNewLocationInput(activeElement){
-    activeElement.insertAdjacentHTML('afterend', '<br><input>')
+    activeElement.insertAdjacentHTML('afterend', '<br><button class = "deleteInput">X</button><input>')
+    var deleteButtonList = document.getElementsByClassName('deleteInput')
+    var newDeleteButton = deleteButtonList[deleteButtonList.length - 1]
+    newDeleteButton.onclick = () => {
+      this.getLocationsDiv().removeChild(newDeleteButton.previousElementSibling)
+      this.getLocationsDiv().removeChild(newDeleteButton.nextElementSibling)
+      this.getLocationsDiv().removeChild(newDeleteButton)
+    }
+    newDeleteButton.focus() //since this method runs before default tab actions occur, we must focus on the element before the one we want to actually be focused after a tab
   },
   createNewAddressInput(activeElement){
     activeElement.insertAdjacentHTML('afterend', '<label>Address: </label><input class="address">')
@@ -260,6 +268,7 @@ function initialize(){
       else{currentInfo.excelFile = new excel(outputFile)}
     })
   }
+  DOM.getDateElement().focus()
 }
 setTimeout(initialize, 50) //wait 50ms so the document elements will render(window.onload does not work)
 
@@ -298,7 +307,7 @@ document.addEventListener('keydown', event => {
           let selection = event.keyCode - 49;
           let selectedSuggestion = suggestions[selection].innerHTML.slice(4);
           document.activeElement.value = selectedSuggestion;
-          document.activeElement.style.color = 'green';
+          if(savedAddresses.isLocation(selectedSuggestion)) document.activeElement.style.color = 'green';
           document.body.removeChild(document.getElementById('suggestionBox'))
         }
       }
@@ -339,7 +348,7 @@ function submit(){
     alert('Please enter a home location');
     return false;
   }
-  currentInfo.date = DOM.getDate();
+  currentInfo.date = DOM.getDateElement().value;
   var inputElements = DOM.getInputElements()
   var locations = []
   for(let i = 0; i < inputElements.length; i++){
@@ -370,5 +379,6 @@ function submit(){
   mapquest.calculateMileage(addresses)
   DOM.resetInputForm()
   if(savedAddresses.isLocation('HOME')) DOM.setHomeInputs()
+  DOM.getDateElement().focus()
   return false; //stop the form from attemping to send data somewhere and reloading page
 }
