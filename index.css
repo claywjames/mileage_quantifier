@@ -23,9 +23,6 @@ header ~ button {
     height: 20%;
     left: 40%;
     top: 30%;
-}
-
-button > a {
     color: white;
-    text-decoration: none;
+    cursor: pointer;
 }
