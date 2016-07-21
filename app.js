@@ -298,20 +298,17 @@ document.addEventListener('keydown', event => {
           if(document.activeElement.className !== 'home') DOM.createNewLocationInput(document.activeElement);
         }else{
           DOM.createNewAddressInput(document.activeElement);
+          document.body.removeChild(document.getElementById('suggestionBox'));
         }
       }
-    }else if(49 <= event.keyCode && event.keyCode <= 57){
-      if(document.getElementById('suggestionBox')){
-        if(event.ctrlKey){
-          let suggestions = document.getElementsByClassName('suggestion')
-          let selection = event.keyCode - 49;
-          let selectedSuggestion = suggestions[selection].innerHTML.slice(4);
-          document.activeElement.value = selectedSuggestion;
-          if(savedAddresses.isLocation(selectedSuggestion)) document.activeElement.style.color = 'green';
-          document.body.removeChild(document.getElementById('suggestionBox'))
-        }
-      }
-    }else{
+    }else if(49 <= event.keyCode && event.keyCode <= 57 && event.ctrlKey && document.getElementById('suggestionBox')){
+      let suggestions = document.getElementsByClassName('suggestion')
+      let selection = event.keyCode - 49;
+      let selectedSuggestion = suggestions[selection].innerHTML.slice(4);
+      document.activeElement.value = selectedSuggestion;
+      if(savedAddresses.isLocation(selectedSuggestion)) document.activeElement.style.color = 'green';
+      document.body.removeChild(document.getElementById('suggestionBox'))
+    }else if(document.activeElement.className == ""){
       //this function occurs before the element value is updated; therefore it is done here manually
       var input = "";
       var location = document.activeElement.value;
