@@ -1,6 +1,7 @@
 html, body{
   height: 100%;
   margin: 0;
+  font-family: sans-serif;
 }
 
 #settings {
@@ -35,14 +36,15 @@ body > form{
   margin-left: -25px;
 }
 
-#mileageResults {
+#results {
   position: relative;
   float: right;
   top: 2%;
-  right: 5%;
-  width: 5%;
-  height: 5%;
+  right: 2%;
+  width: 20%;
+  height: 80%;
   border: 1px solid black;
+  text-align: center;
 }
 
 #suggestionBox {

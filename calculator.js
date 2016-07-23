@@ -24,15 +24,14 @@ const currentInfo = {
     return locationString;
   },
   report(){
-    DOM.reportMileage(this.mileage);
+    DOM.resultsDiv.innerHTML += '<br>Got response: ' + this.mileage + ' miles';
     let locations = this.getLocationString()
     this.excelFile.writeInfo(this.date, locations, this.mileage)
   }
 }
 
 const DOM = {
-  mileageDiv: document.getElementById('mileageResults'),
-
+  resultsDiv: document.getElementById('results'),
   getDateElement(){ return document.getElementById('date')},
   getLocationsDiv(){ return document.getElementById('locations')},
   getInputForm(){ return document.getElementById('locationsForm')},
@@ -47,7 +46,7 @@ const DOM = {
   },
   setHomeInputs(){
     var settingsHome = document.getElementById('settingsHome');
-    settingsHome.value = savedAddresses.getAddress('HOME');
+    settingsHome.value = savedAddresses.locationsDict['HOME'];
     var inputNodes = this.getLocationsDiv().childNodes;
     for(var child = inputNodes[0]; child !== null; child = child.nextElementSibling){
       if(child.className == 'home'){
@@ -99,9 +98,6 @@ const DOM = {
       }
     }
   },
-  reportMileage(mileage){
-    this.mileageDiv.innerHTML = mileage;
-  },
   resetInputForm(){
     this.getInputForm().innerHTML =
     "<label>Date: <input id = 'date'></label><br>" +
@@ -135,6 +131,7 @@ const mapquest = {
         console.log('error')
       }
     })
+    DOM.resultsDiv.innerHTML += '<br>Queried Mapquest';
   }
 }
 
@@ -150,18 +147,10 @@ const savedAddresses = {
       if(err.code == 'ENOENT') fs.closeSync(fs.openSync('addresses.txt', 'w'))
     }
   },
-  getAddress(location){
-    let addresses = fs.readFileSync(this.addressFile)
-    let startIndex = addresses.indexOf(location)
-    let endIndex = addresses.indexOf('\n', startIndex)
-    let locationAddressString = addresses.toString('utf8', startIndex, endIndex)
-    let address = locationAddressString.split('::')[1];
-    return address;
-  },
   saveAddress(location, address){
     if(this.isLocation(location)){
       let file = fs.readFileSync(this.addressFile, 'utf8');
-      let oldAddress = this.getAddress(location);
+      let oldAddress = this.locationsDict[location];
       let regex = new RegExp(location + '::' + oldAddress, 'g');
       let result = file.replace(regex, location + '::' + address + '\n');
       fs.writeFileSync(this.addressFile, result, 'utf8')
@@ -191,11 +180,11 @@ const savedAddresses = {
       offset = startIndex;
       i++;
     }
-    this.locationDict = locationsDict;
+    this.locationsDict = locationsDict;
     this.locationsList = locationsList;
   },
   isLocation(location){
-    if(this.locationDict[location]) return true;
+    if(this.locationsDict[location]) return true;
     return false;
   }
 }
@@ -245,6 +234,7 @@ class excel {
     this.worksheet['B' + row.toString()] = {w: undefined, v: locations, t: 's'};
     this.worksheet['C' + row.toString()] = {w: undefined, v: mileage, t: 'n'};
     xlsx.writeFile(this.workbook, this.file, {cellDates: true});
+    DOM.resultsDiv.innerHTML += '<br>Updated ' + this.file;
   }
 }
 
@@ -281,6 +271,7 @@ function updateSettings(){
   const settingsHome = document.getElementById('settingsHome');
   const settingsOutput = document.getElementById('settingsOutput');
   savedAddresses.saveAddress('HOME', settingsHome.value);
+  savedAddresses.locationsDict['HOME'] = settingsHome.value;
   DOM.setHomeInputs();
   fs.stat(settingsOutput.value, err => {
     if(err && err.code == 'ENOENT'){alert('Cannot find ' + settingsOutput.value)}
@@ -341,6 +332,7 @@ document.addEventListener('keydown', event => {
 
 DOM.getSubmitButton().onclick = function(){submit()};
 function submit(){
+  DOM.resultsDiv.innerHTML = 'Results:';
   if(!currentInfo.excelFile){
     alert('Please enter a valid output file');
     return false;
@@ -357,9 +349,10 @@ function submit(){
       let address = inputElements[i].value;
       let location = inputElements[i - 1].value;
       savedAddresses.saveAddress(location, address)
+      savedAddresses.locationsDict[location] = address;
+      DOM.resultsDiv.innerHTML += '<br>Saved ' + location;
     }
   }
-  savedAddresses.generateLocations()
   var j = 0;
   for(let i = 0; i < inputElements.length; i++){
     if(inputElements[i].className == "" || inputElements[i].className == 'home'){
@@ -375,8 +368,9 @@ function submit(){
   currentInfo.locations = locations;
   var addresses = [];
   for(let i = 0; i < locations.length; i++){
-    addresses[i] = savedAddresses.getAddress(locations[i])
+    addresses[i] = savedAddresses.locationsDict[locations[i]];
   }
+  DOM.resultsDiv.innerHTML += '<br>Converted locations to addresses';
   mapquest.calculateMileage(addresses)
   DOM.resetInputForm()
   if(savedAddresses.isLocation('HOME')) DOM.setHomeInputs()
