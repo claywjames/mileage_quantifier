@@ -140,7 +140,8 @@ const mapquest = {
 
 const savedAddresses = {
   addressFile: 'addresses.txt',
-  locationList: [],
+  locationsDict: {},
+  locationsList: [],
 
   createFile(){
     try{
@@ -168,30 +169,33 @@ const savedAddresses = {
       fs.appendFileSync(this.addressFile, location + '::' + address + '\n')
     }
   },
-  generateLocationList(){
+  generateLocations(){
     var addressFile = fs.readFileSync(this.addressFile),
-        locations = [],
+        locationsDict = {},
+        locationsList = [],
         startIndex = 0,
         endIndex = 0,
         offset = 0,
         i = 1;
     while((startIndex !== -1) && (endIndex !== -1)){
-      endIndex = addressFile.indexOf('::', offset)
+      endIndex = addressFile.indexOf('\n', offset);
       if(addressFile.toString('utf8', startIndex, endIndex).length > 0){
-        locations[i] = addressFile.toString('utf8', startIndex, endIndex)
+        let locationAddressArray = addressFile.toString('utf8', startIndex, endIndex).split('::');
+        let location = locationAddressArray[0];
+        let address = locationAddressArray[1];
+        locationsDict[location] = address;
+        locationsList[i] = location;
       }
       offset = endIndex;
       startIndex = addressFile.indexOf('\n', offset) + 1;
       offset = startIndex;
-      i++
+      i++;
     }
-    this.locationList = locations;
+    this.locationDict = locationsDict;
+    this.locationsList = locationsList;
   },
   isLocation(location){
-    let locations = this.locationList;
-    for(let i = 0; i < locations.length; i++){
-      if(locations[i] == location) return true;
-    }
+    if(this.locationDict[location]) return true;
     return false;
   }
 }
@@ -249,7 +253,7 @@ function initialize(){
   document.getElementById('settingsButton').onclick = updateSettings;
   settingsFile.createFile()
   savedAddresses.createFile()
-  savedAddresses.generateLocationList()
+  savedAddresses.generateLocations()
   if(savedAddresses.isLocation('HOME')){
     DOM.setHomeInputs();
   }else{
@@ -326,7 +330,7 @@ document.addEventListener('keydown', event => {
         }
       }else{
         document.activeElement.style.color = 'red';
-        var suggestions = fuzzy.filter(location, savedAddresses.locationList);
+        var suggestions = fuzzy.filter(location, savedAddresses.locationsList);
         while(suggestions.length > 5) suggestions.pop()
         suggestions = suggestions.map((suggestion) => {return suggestion.string})
         DOM.displaySuggestions(suggestions)
@@ -355,7 +359,7 @@ function submit(){
       savedAddresses.saveAddress(location, address)
     }
   }
-  savedAddresses.generateLocationList()
+  savedAddresses.generateLocations()
   var j = 0;
   for(let i = 0; i < inputElements.length; i++){
     if(inputElements[i].className == "" || inputElements[i].className == 'home'){
