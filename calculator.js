@@ -27,6 +27,9 @@ const currentInfo = {
     DOM.resultsDiv.innerHTML += '<br>Got response: ' + this.mileage + ' miles';
     let locations = this.getLocationString()
     this.excelFile.writeInfo(this.date, locations, this.mileage)
+    DOM.resetInputForm()
+    if(savedAddresses.isLocation('HOME')) DOM.setHomeInputs()
+    DOM.getDateElement().focus()
   }
 }
 
@@ -130,7 +133,9 @@ const mapquest = {
           currentInfo.report()
         }else{
           DOM.resultsDiv.innerHTML += '<br>Recieved bad response from Mapquest. Please check addresses for errors.';
-          console.log(results.collections)
+          for(let i = 0; i < results.collections.length; i++){
+            console.log(results.collections[i]);
+          }
         }
         
       }else{
@@ -299,7 +304,7 @@ document.addEventListener('keydown', event => {
           if(document.activeElement.className !== 'home') DOM.createNewLocationInput(document.activeElement);
         }else{
           DOM.createNewAddressInput(document.activeElement);
-          document.body.removeChild(document.getElementById('suggestionBox'));
+          if(document.getElementById('suggestionBox')) document.body.removeChild(document.getElementById('suggestionBox'));
         }
       }
     }else if(49 <= event.keyCode && event.keyCode <= 57 && event.ctrlKey && document.getElementById('suggestionBox')){
@@ -376,8 +381,5 @@ function submit(){
   }
   DOM.resultsDiv.innerHTML += '<br>Converted locations to addresses';
   mapquest.calculateMileage(addresses)
-  DOM.resetInputForm()
-  if(savedAddresses.isLocation('HOME')) DOM.setHomeInputs()
-  DOM.getDateElement().focus()
-  return false; //stop the form from attemping to send data somewhere and reloading page
+  //stop the form from attemping to send data somewhere and reloading page
 }

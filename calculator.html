@@ -21,7 +21,7 @@
         <input id = 'settingsButton' type = 'button' value = 'update'>
       </form>
     </div>
-    <form id = 'locationsForm'>
+    <form id = 'locationsForm' onsubmit = 'return false'>
       <label>Date: <input id = 'date'></label><br>
       <label>Locations:</label><br>
       <div id = 'locations'>
@@ -29,7 +29,7 @@
         <br><input>
         <br><input readonly class = 'home'>
       </div>
-      <br><input id = 'submit', type = 'submit'>
+      <br><input id = 'submit', type = 'button' value = 'submit'>
     </form>
     <div id = 'results'>Results:</div>
     <script>require('./calculator.js')</script>
