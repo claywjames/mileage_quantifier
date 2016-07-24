@@ -350,17 +350,8 @@ function submit(){
   currentInfo.date = DOM.getDateElement().value;
   var inputElements = DOM.getInputElements()
   var locations = []
-  for(let i = 0; i < inputElements.length; i++){
-    if(inputElements[i].className === 'address'){
-      let address = inputElements[i].value;
-      let location = inputElements[i - 1].value;
-      savedAddresses.saveAddress(location, address)
-      savedAddresses.locationsDict[location] = address;
-      DOM.resultsDiv.innerHTML += '<br>Saved ' + location;
-    }
-  }
   var j = 0;
-  for(let i = 0; i < inputElements.length; i++){
+  for(let i = inputElements.length - 1; i > -1; i--){ //iterate array in reverse to save addresses before looking at locations
     if(inputElements[i].className == "" || inputElements[i].className == 'home'){
       if(savedAddresses.isLocation(inputElements[i].value)){
         locations[j] = inputElements[i].value
@@ -369,8 +360,15 @@ function submit(){
         alert('Please enter the address for ' + inputElements[i].value)
         return false
       }
+    }else{
+      let address = inputElements[i].value;
+      let location = inputElements[i - 1].value;
+      savedAddresses.saveAddress(location, address)
+      savedAddresses.locationsDict[location] = address;
+      DOM.resultsDiv.innerHTML += '<br>Saved ' + location;
     }
   }
+  locations.reverse();
   currentInfo.locations = locations;
   var addresses = [];
   for(let i = 0; i < locations.length; i++){
