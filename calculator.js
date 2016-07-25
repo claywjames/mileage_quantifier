@@ -117,7 +117,7 @@ const DOM = {
 
 const mapquest = {
   //The object that interacts with the mapquest API
-  baseURL: 'http://www.mapquestapi.com/directions/v2/route?key=MkRTKx7DbBySjsya4hnVsQ0bxgQgnbSy&ambiguities=check',
+  baseURL: 'http://www.mapquestapi.com/directions/v2/route?key=MkRTKx7DbBySjsya4hnVsQ0bxgQgnbSy',
 
   calculateMileage(addresses){
     var url = this.baseURL + '&from=' + addresses[0];
@@ -133,11 +133,8 @@ const mapquest = {
           currentInfo.report()
         }else{
           DOM.resultsDiv.innerHTML += '<br>Recieved bad response from Mapquest. Please check addresses for errors.';
-          for(let i = 0; i < results.collections.length; i++){
-            console.log(results.collections[i]);
-          }
+          console.log(results);
         }
-        
       }else{
         console.log('error')
       }
@@ -380,6 +377,5 @@ function submit(){
     addresses[i] = savedAddresses.locationsDict[locations[i]];
   }
   DOM.resultsDiv.innerHTML += '<br>Converted locations to addresses';
-  mapquest.calculateMileage(addresses)
-  //stop the form from attemping to send data somewhere and reloading page
+  mapquest.calculateMileage(addresses);
 }
