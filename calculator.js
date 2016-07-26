@@ -124,10 +124,19 @@ const mapquest = {
     for(let i = 1; i < addresses.length; i++){
       url += '&to=' + addresses[i];
     }
+    url = url.replace('#', '%23'); //URI replacement of number sign to prevent errors
     request(url, (error, response, body) => {
       if(!error && response.statusCode == 200){
         var results = JSON.parse(body)
+        console.log(results);
         if(results.info.statuscode === 0){
+          var locations = results.route.locations;
+          for(let i = 0; i < locations.length; i++){
+            if(!(locations[i].geocodeQualityCode.startsWith('P1') || locations[i].geocodeQualityCode.startsWith('L1'))){
+              DOM.resultsDiv.innerHTML += '<br>The exact location of address ' + (i + 1) + ' could not be accurately determined by mapquest.';
+              return;
+            }
+          }
           var mileage = Math.round(results.route.distance)
           currentInfo.mileage = mileage;
           currentInfo.report()
