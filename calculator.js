@@ -47,6 +47,13 @@ const DOM = {
     })
     return inputElements;
   },
+  getLocationInputElements(){
+    var locationInputElements = DOM.getInputElements().filter((element) => {
+      if (element.className === "") return true;
+      return false;
+    })
+    return locationInputElements;
+  },
   setHomeInputs() {
     var settingsHome = document.getElementById('settingsHome');
     settingsHome.value = savedAddresses.locationsDict['HOME'];
@@ -57,19 +64,40 @@ const DOM = {
       }
     }
   },
-  createNewLocationInput(activeElement) {
-    activeElement.insertAdjacentHTML('afterend', '<br><button class = "deleteInput">X</button><input>')
+  createNewLocationInput(adjacentElement) {
+    adjacentElement.insertAdjacentHTML('afterend', '<br><button class = "deleteInput">X</button><input><button class = "showAddress">A</button>')
     var deleteButtonList = document.getElementsByClassName('deleteInput')
-    var newDeleteButton = deleteButtonList[deleteButtonList.length - 1]
+    var newDeleteButton = deleteButtonList[deleteButtonList.length - 1];
     newDeleteButton.onclick = () => {
-      this.getLocationsDiv().removeChild(newDeleteButton.previousElementSibling)
-      this.getLocationsDiv().removeChild(newDeleteButton.nextElementSibling)
+      if(this.getLocationInputElements().length === 1) return false;
+      this.getLocationsDiv().removeChild(newDeleteButton.previousElementSibling) //br
+
+      //removes the correct amount of elements depending on if there is an address input
+      var i = 2;
+      if(newDeleteButton.nextElementSibling.nextElementSibling.nextElementSibling.tagName === 'LABEL') i += 2;
+      for(i; i > 0; i--) this.getLocationsDiv().removeChild(newDeleteButton.nextElementSibling);
+
       this.getLocationsDiv().removeChild(newDeleteButton)
+    }
+    var addressButtonList = document.getElementsByClassName('showAddress');
+    var newAddressButton = addressButtonList[addressButtonList.length - 1];
+    newAddressButton.onclick = () => {
+      if(newAddressButton.nextElementSibling.tagName === 'LABEL'){
+        for(let i = 2; i > 0; i--) this.getLocationsDiv().removeChild(newAddressButton.nextElementSibling);
+      }else{
+        if(document.getElementById('suggestionBox')) document.body.removeChild(document.getElementById('suggestionBox'));
+        this.createNewAddressInput(newAddressButton);
+        var location = newAddressButton.previousElementSibling.value;
+        var addressInput = newAddressButton.nextElementSibling.nextElementSibling;
+        if(savedAddresses.isLocation(location)){
+          addressInput.value = savedAddresses.locationsDict[location];
+        }
+      }
     }
     newDeleteButton.focus() //since this method runs before default tab actions occur, we must focus on the element before the one we want to actually be focused after a tab
   },
-  createNewAddressInput(activeElement) {
-    activeElement.insertAdjacentHTML('afterend', '<label>Address: </label><input class="address">')
+  createNewAddressInput(adjacentElement) {
+    adjacentElement.insertAdjacentHTML('afterend', '<label>Address: </label><input class="address">')
   },
   displaySuggestions(suggestions) {
     if (!document.getElementById('suggestionBox')) {
@@ -107,10 +135,10 @@ const DOM = {
       "<label>Locations:</label><br>" +
       "<div id = 'locations'>" +
       "<input readonly class = 'home'>" +
-      "<br><input>" +
       "<br><input readonly class = 'home'>" +
       "</div>" +
       "<br><input id = 'submit', type = 'submit'>";
+    DOM.createNewLocationInput(DOM.getInputElements()[0]);
     this.getSubmitButton().onclick = function () { submit() };
   }
 }
@@ -268,6 +296,7 @@ function initialize() {
       'which you can access from the start page.  To set a home location, enter it into the box ' +
       'at the top of the page.');
   }
+  DOM.createNewLocationInput(DOM.getInputElements()[0]);
   var outputFile = settingsFile.getOutputFile();
   document.getElementById('settingsOutput').value = outputFile;
   if (outputFile == "") {
@@ -304,12 +333,18 @@ document.addEventListener('keydown', event => {
     if (event.keyCode === 9) {
       if (document.activeElement.className === 'address') {
         DOM.createNewLocationInput(document.activeElement);
-      } else {
+      } else if(document.activeElement.className === ""){
         if (savedAddresses.isLocation(document.activeElement.value)) {
-          if (document.activeElement.className !== 'home') DOM.createNewLocationInput(document.activeElement);
+          if (document.activeElement.nextElementSibling.nextElementSibling.tagName !== 'LABEL') {
+            DOM.createNewLocationInput(document.activeElement.nextElementSibling);
+          } else {
+            DOM.createNewLocationInput(document.activeElement.nextElementSibling.nextElementSibling.nextElementSibling);
+          }
         } else {
-          DOM.createNewAddressInput(document.activeElement);
-          if (document.getElementById('suggestionBox')) document.body.removeChild(document.getElementById('suggestionBox'));
+          if(document.activeElement.nextElementSibling.nextElementSibling.tagName !== 'LABEL'){
+            DOM.createNewAddressInput(document.activeElement.nextElementSibling);
+            if (document.getElementById('suggestionBox')) document.body.removeChild(document.getElementById('suggestionBox'));
+          }
         }
       }
     } else if (49 <= event.keyCode && event.keyCode <= 57 && event.ctrlKey && document.getElementById('suggestionBox')) {
