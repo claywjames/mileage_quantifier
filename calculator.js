@@ -97,7 +97,7 @@ const DOM = {
     newDeleteButton.focus() //since this method runs before default tab actions occur, we must focus on the element before the one we want to actually be focused after a tab
   },
   createNewAddressInput(adjacentElement) {
-    adjacentElement.insertAdjacentHTML('afterend', '<label>Address: </label><input class="address">')
+    adjacentElement.insertAdjacentHTML('afterend', '<label>Address: </label><input size = 50 class="address">')
   },
   displaySuggestions(suggestions) {
     if (!document.getElementById('suggestionBox')) {
@@ -192,6 +192,7 @@ const savedAddresses = {
     }
   },
   saveAddress(location, address) {
+    this.locationsDict[location] = address;
     if (this.isLocation(location)) {
       let file = fs.readFileSync(this.addressFile, 'utf8');
       let oldAddress = this.locationsDict[location];
@@ -238,22 +239,37 @@ const settingsFile = {
 
   createFile() {
     try {
-      let file = fs.statSync('addresses.txt')
+      let file = fs.statSync('settings.txt')
     } catch (err) {
-      if (err.code == 'ENOENT') fs.appendFileSync('settings.txt', 'Output file::\n')
+      if (err.code == 'ENOENT') fs.appendFileSync('settings.txt', 'Output file::\nCalendar file::\n');
     }
   },
-  setOutputFile(newOutputFile) {
+  setFile(filetype, newFileName) {
     let fileString = fs.readFileSync(this.file, 'utf8');
-    let regex = new RegExp('Output file::.*', 'g');
-    let result = fileString.replace(regex, 'Output file::' + newOutputFile + '\n');
+    let regex = new RegExp(filetype + '::.*', 'g');
+    let result = fileString.replace(regex, filetype + '::' + newFileName + '\n');
     fs.writeFileSync(this.file, result, 'utf8');
   },
-  getOutputFile() {
+  getFile(filetype) {
     let fileString = fs.readFileSync(this.file, 'utf8');
-    let regex = new RegExp('Output file::.*', 'g');
+    let regex = new RegExp(filetype + '::.*', 'g');
     let result = regex.exec(fileString)[0].split('::')[1];
     return result;
+  },
+  updateSettings(){
+    const settingsCalendar = document.getElementById('settingsCalendar');
+    const settingsHome = document.getElementById('settingsHome');
+    const settingsOutput = document.getElementById('settingsOutput');
+    savedAddresses.saveAddress('HOME', settingsHome.value);
+    DOM.setHomeInputs();
+    fs.stat(settingsOutput.value, err => {
+      if (err && err.code == 'ENOENT') { alert('Cannot find ' + settingsOutput.value) }
+      else {
+        settingsFile.setFile('Output file', settingsOutput.value)
+        currentInfo.excelFile = new excel(settingsOutput.value)
+        settingsFile.setFile('Calendar file', settingsCalendar.value)
+      }
+    })
   }
 }
 
@@ -284,7 +300,7 @@ class excel {
 
 
 function initialize() {
-  document.getElementById('settingsButton').onclick = updateSettings;
+  document.getElementById('settingsButton').onclick = settingsFile.updateSettings;
   settingsFile.createFile()
   savedAddresses.createFile()
   savedAddresses.generateLocations()
@@ -297,7 +313,9 @@ function initialize() {
       'at the top of the page.');
   }
   DOM.createNewLocationInput(DOM.getInputElements()[0]);
-  var outputFile = settingsFile.getOutputFile();
+  var calendarFile = settingsFile.getFile('Calendar file');
+  document.getElementById('settingsCalendar').value = calendarFile;
+  var outputFile = settingsFile.getFile('Output file');
   document.getElementById('settingsOutput').value = outputFile;
   if (outputFile == "") {
     alert('Please enter an output file.  The output file must be an excel file with file extension .xlsx');
@@ -310,22 +328,6 @@ function initialize() {
   DOM.getDateElement().focus()
 }
 setTimeout(initialize, 50) //wait 50ms so the document elements will render(window.onload does not work)
-
-
-function updateSettings() {
-  const settingsHome = document.getElementById('settingsHome');
-  const settingsOutput = document.getElementById('settingsOutput');
-  savedAddresses.saveAddress('HOME', settingsHome.value);
-  savedAddresses.locationsDict['HOME'] = settingsHome.value;
-  DOM.setHomeInputs();
-  fs.stat(settingsOutput.value, err => {
-    if (err && err.code == 'ENOENT') { alert('Cannot find ' + settingsOutput.value) }
-    else {
-      settingsFile.setOutputFile(settingsOutput.value)
-      currentInfo.excelFile = new excel(settingsOutput.value)
-    }
-  })
-}
 
 document.addEventListener('keydown', event => {
   var inputElements = DOM.getInputElements();
@@ -405,7 +407,6 @@ function submit() {
       let address = inputElements[i].value;
       let location = inputElements[i - 1].value;
       savedAddresses.saveAddress(location, address)
-      savedAddresses.locationsDict[location] = address;
       DOM.resultsDiv.innerHTML += '<br>Saved ' + location;
     }
   }
