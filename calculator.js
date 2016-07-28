@@ -6,39 +6,17 @@ const xlsx = require('xlsx-style')
 const fuzzy = require('fuzzy')
 
 
-const currentInfo = {
-  excelFile: null,
-  date: 0,
-  locations: [],
-  mileage: 0,
-
-  getLocationString() {
-    var locationArray = this.locations;
-    locationArray.shift()
-    locationArray.pop()
-    var locationString = "";
-    for (let i = 0; i < this.locations.length; i++) {
-      locationString = locationString + this.locations[i] + ', ';
-    }
-    locationString = locationString.slice(0, locationString.length - 2) //remove trailing comma
-    return locationString;
-  },
-  report() {
-    DOM.resultsDiv.innerHTML += '<br>Got response: ' + this.mileage + ' miles';
-    let locations = this.getLocationString()
-    this.excelFile.writeInfo(this.date, locations, this.mileage)
-    DOM.resetInputForm()
-    if (savedAddresses.isLocation('HOME')) DOM.setHomeInputs()
-    DOM.getDateElement().focus()
-  }
-}
-
 const DOM = {
   resultsDiv: document.getElementById('results'),
+
   getDateElement() { return document.getElementById('date') },
+
   getLocationsDiv() { return document.getElementById('locations') },
+
   getInputForm() { return document.getElementById('locationsForm') },
+
   getSubmitButton() { return document.getElementById('submit') },
+
   getInputElements() {
     let childArray = Array.prototype.slice.call(this.getLocationsDiv().childNodes) //converts childNodes object list into an array
     let inputElements = childArray.filter((element) => {
@@ -47,6 +25,7 @@ const DOM = {
     })
     return inputElements;
   },
+
   getLocationInputElements(){
     var locationInputElements = DOM.getInputElements().filter((element) => {
       if (element.className === "") return true;
@@ -54,6 +33,7 @@ const DOM = {
     })
     return locationInputElements;
   },
+
   setHomeInputs() {
     var settingsHome = document.getElementById('settingsHome');
     settingsHome.value = savedAddresses.locationsDict['HOME'];
@@ -64,6 +44,7 @@ const DOM = {
       }
     }
   },
+
   createNewLocationInput(adjacentElement) {
     adjacentElement.insertAdjacentHTML('afterend', '<br><button class = "deleteInput">X</button><input><button class = "showAddress">A</button>')
     var deleteButtonList = document.getElementsByClassName('deleteInput')
@@ -96,9 +77,11 @@ const DOM = {
     }
     newDeleteButton.focus() //since this method runs before default tab actions occur, we must focus on the element before the one we want to actually be focused after a tab
   },
+
   createNewAddressInput(adjacentElement) {
     adjacentElement.insertAdjacentHTML('afterend', '<label>Address: </label><input size = 50 class="address">')
   },
+
   displaySuggestions(suggestions) {
     if (!document.getElementById('suggestionBox')) {
       if (suggestions.length == 0) return false;
@@ -129,6 +112,7 @@ const DOM = {
       }
     }
   },
+
   resetInputForm() {
     this.getInputForm().innerHTML =
       "<label>Date: <input id = 'date'></label><br>" +
@@ -143,39 +127,65 @@ const DOM = {
   }
 }
 
-const mapquest = {
-  //The object that interacts with the mapquest API
+const mileage = {
+  //The object that interacts with the mapquest API and reports the mileage results
+  excelFile: null,
   baseURL: 'http://www.mapquestapi.com/directions/v2/route?key=MkRTKx7DbBySjsya4hnVsQ0bxgQgnbSy',
+
+  responseAmbiguitites(locations){
+    for (let i = 0; i < locations.length; i++) {
+      if (!(locations[i].geocodeQualityCode.startsWith('P1') || locations[i].geocodeQualityCode.startsWith('L1'))) {
+        DOM.resultsDiv.innerHTML += '<br>The exact location of address ' + (i + 1) + ' could not be accurately determined by mapquest.';
+        return true;
+      }
+    }
+    return false;
+  },
 
   calculateMileage(addresses) {
     var url = this.baseURL + '&from=' + addresses[0];
-    for (let i = 1; i < addresses.length; i++) {
-      url += '&to=' + addresses[i];
-    }
+    for (let i = 1; i < addresses.length; i++) url += '&to=' + addresses[i];
     url = url.replace('#', '%23'); //URI replacement of number sign to prevent errors
     request(url, (error, response, body) => {
       if (!error && response.statusCode == 200) {
         var results = JSON.parse(body)
         if (results.info.statuscode === 0) {
           var locations = results.route.locations;
-          for (let i = 0; i < locations.length; i++) {
-            if (!(locations[i].geocodeQualityCode.startsWith('P1') || locations[i].geocodeQualityCode.startsWith('L1'))) {
-              DOM.resultsDiv.innerHTML += '<br>The exact location of address ' + (i + 1) + ' could not be accurately determined by mapquest.';
-              return;
-            }
-          }
-          var mileage = Math.round(results.route.distance)
-          currentInfo.mileage = mileage;
-          currentInfo.report()
+          if(this.responseAmbiguitites(locations)) return false;
+          var miles = Math.round(results.route.distance)
+          DOM.resultsDiv.innerHTML += '<br>Got response: ' + miles + ' miles';
+          return miles;
         } else {
           DOM.resultsDiv.innerHTML += '<br>Recieved bad response from Mapquest. Please check addresses for errors.';
           console.log(results);
         }
       } else {
-        console.log('error')
+        DOM.resultsDiv.innerHTML += '<br>Internet Error.';
       }
     })
     DOM.resultsDiv.innerHTML += '<br>Queried Mapquest';
+  },
+
+  getLocationString(locationArray){
+    //remove home locations
+    locationArray.shift()
+    locationArray.pop()
+    var locationString = "";
+    for (let i = 0; i < locationArray.length; i++) locationString = locationString + locationArray[i] + ', ';
+    locationString = locationString.slice(0, locationString.length - 2) //remove trailing comma
+    return locationString;
+  },
+
+  report(locations, addresses) {
+    let mileage = this.calculateMileage(addresses);
+    if(!mileage) return;
+    let date = DOM.getDateElement().value;
+    let locationString = this.getLocationString(locations);
+    this.excelFile.writeInfo(date, locationString, mileage);
+    DOM.resultsDiv.innerHTML += '<br>' + this.excelFile.file + ' updated';
+    DOM.resetInputForm();
+    DOM.setHomeInputs();
+    DOM.getDateElement().focus();
   }
 }
 
@@ -191,6 +201,7 @@ const savedAddresses = {
       if (err.code == 'ENOENT') fs.closeSync(fs.openSync('addresses.txt', 'w'))
     }
   },
+
   saveAddress(location, address) {
     this.locationsDict[location] = address;
     if (this.isLocation(location)) {
@@ -203,6 +214,7 @@ const savedAddresses = {
       fs.appendFileSync(this.addressFile, location + '::' + address + '\n')
     }
   },
+
   generateLocations() {
     var addressFile = fs.readFileSync(this.addressFile),
       locationsDict = {},
@@ -228,6 +240,7 @@ const savedAddresses = {
     this.locationsDict = locationsDict;
     this.locationsList = locationsList;
   },
+
   isLocation(location) {
     if (this.locationsDict[location]) return true;
     return false;
@@ -244,18 +257,21 @@ const settingsFile = {
       if (err.code == 'ENOENT') fs.appendFileSync('settings.txt', 'Output file::\nCalendar file::\n');
     }
   },
+
   setFile(filetype, newFileName) {
     let fileString = fs.readFileSync(this.file, 'utf8');
     let regex = new RegExp(filetype + '::.*', 'g');
     let result = fileString.replace(regex, filetype + '::' + newFileName + '\n');
     fs.writeFileSync(this.file, result, 'utf8');
   },
+
   getFile(filetype) {
     let fileString = fs.readFileSync(this.file, 'utf8');
     let regex = new RegExp(filetype + '::.*', 'g');
     let result = regex.exec(fileString)[0].split('::')[1];
     return result;
   },
+
   updateSettings(){
     const settingsCalendar = document.getElementById('settingsCalendar');
     const settingsHome = document.getElementById('settingsHome');
@@ -266,7 +282,7 @@ const settingsFile = {
       if (err && err.code == 'ENOENT') { alert('Cannot find ' + settingsOutput.value) }
       else {
         settingsFile.setFile('Output file', settingsOutput.value)
-        currentInfo.excelFile = new excel(settingsOutput.value)
+        mileage.excelFile = new excel(settingsOutput.value)
         settingsFile.setFile('Calendar file', settingsCalendar.value)
       }
     })
@@ -304,6 +320,7 @@ function initialize() {
   settingsFile.createFile()
   savedAddresses.createFile()
   savedAddresses.generateLocations()
+
   if (savedAddresses.isLocation('HOME')) {
     DOM.setHomeInputs();
   } else {
@@ -312,7 +329,7 @@ function initialize() {
       'which you can access from the start page.  To set a home location, enter it into the box ' +
       'at the top of the page.');
   }
-  DOM.createNewLocationInput(DOM.getInputElements()[0]);
+
   var calendarFile = settingsFile.getFile('Calendar file');
   document.getElementById('settingsCalendar').value = calendarFile;
   var outputFile = settingsFile.getFile('Output file');
@@ -322,17 +339,19 @@ function initialize() {
   } else {
     fs.stat(outputFile, (err) => {
       if (err && err.code == 'ENOENT') { alert('Your output file cannot be found') }
-      else { currentInfo.excelFile = new excel(outputFile) }
+      else { mileage.excelFile = new excel(outputFile) }
     })
   }
-  DOM.getDateElement().focus()
+  DOM.createNewLocationInput(DOM.getInputElements()[0]);
+  DOM.getDateElement().focus();
 }
 setTimeout(initialize, 50) //wait 50ms so the document elements will render(window.onload does not work)
 
 document.addEventListener('keydown', event => {
   var inputElements = DOM.getInputElements();
   if (inputElements.includes(document.activeElement)) {
-    if (event.keyCode === 9) {
+
+    if (event.keyCode === 9) { //tab
       if (document.activeElement.className === 'address') {
         DOM.createNewLocationInput(document.activeElement);
       } else if(document.activeElement.className === ""){
@@ -348,8 +367,10 @@ document.addEventListener('keydown', event => {
             if (document.getElementById('suggestionBox')) document.body.removeChild(document.getElementById('suggestionBox'));
           }
         }
+      } else if(document.activeElement.className === 'home') {
+        document.activeElement.nextElementSibling.nextElementSibling.focus(); //focusing on element before the one wanted(delete button) so that when tab runs, it focuses on the right element
       }
-    } else if (49 <= event.keyCode && event.keyCode <= 57 && event.ctrlKey && document.getElementById('suggestionBox')) {
+    } else if (49 <= event.keyCode && event.keyCode <= 53 && event.ctrlKey && document.getElementById('suggestionBox')) { //49-57 are number keys 1-5
       let suggestions = document.getElementsByClassName('suggestion')
       let selection = event.keyCode - 49;
       let selectedSuggestion = suggestions[selection].innerHTML.slice(4);
@@ -360,7 +381,7 @@ document.addEventListener('keydown', event => {
   }
 })
 
-document.addEventListener('input', event => {
+document.addEventListener('input', event => { //using input instead of keydown because input fires after the input element's value is updated
   var inputElements = DOM.getInputElements();
   if (inputElements.includes(document.activeElement) && document.activeElement.className == "") {
     var location = document.activeElement.value;
@@ -382,7 +403,7 @@ document.addEventListener('input', event => {
 DOM.getSubmitButton().onclick = function () { submit() };
 function submit() {
   DOM.resultsDiv.innerHTML = 'Results:';
-  if (!currentInfo.excelFile) {
+  if (!mileage.excelFile) {
     alert('Please enter a valid output file');
     return false;
   }
@@ -390,11 +411,10 @@ function submit() {
     alert('Please enter a home location');
     return false;
   }
-  currentInfo.date = DOM.getDateElement().value;
   var inputElements = DOM.getInputElements()
   var locations = []
   var j = 0;
-  for (let i = inputElements.length - 1; i > -1; i--) { //iterate array in reverse to save addresses before looking at locations
+  for (let i = inputElements.length - 1; i > -1; i--) { //iterate inputs array in reverse to save addresses before looking at locations
     if (inputElements[i].className == "" || inputElements[i].className == 'home') {
       if (savedAddresses.isLocation(inputElements[i].value)) {
         locations[j] = inputElements[i].value
@@ -405,17 +425,15 @@ function submit() {
       }
     } else {
       let address = inputElements[i].value;
+      if(address === "") continue;
       let location = inputElements[i - 1].value;
       savedAddresses.saveAddress(location, address)
       DOM.resultsDiv.innerHTML += '<br>Saved ' + location;
     }
   }
   locations.reverse();
-  currentInfo.locations = locations;
   var addresses = [];
-  for (let i = 0; i < locations.length; i++) {
-    addresses[i] = savedAddresses.locationsDict[locations[i]];
-  }
+  for (let i = 0; i < locations.length; i++) addresses[i] = savedAddresses.locationsDict[locations[i]];
   DOM.resultsDiv.innerHTML += '<br>Converted locations to addresses';
-  mapquest.calculateMileage(addresses);
+  mileage.report(locations, addresses);
 }
