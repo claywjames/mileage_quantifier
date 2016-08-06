@@ -4,6 +4,7 @@ const request = require('request')
 const fs = require('fs')
 const xlsx = require('xlsx-style')
 const fuzzy = require('fuzzy')
+const ical = require('ical')
 
 
 const DOM = {
@@ -314,6 +315,67 @@ class excel {
   }
 }
 
+class ics {
+  constructor(file) {
+    this.file = file;
+    this.contents = ical.parseFile(file);
+  }
+
+  getYear(desiredYear) {
+    var year = {};
+    for (var k in this.contents) {
+      if (this.contents.hasOwnProperty(k) && this.contents[k].hasOwnProperty('start')){
+        var ev = this.contents[k];
+        if (ev.start.getFullYear() == desiredYear) {
+          year[k] = ev;
+        }
+      }
+    }
+    return year;
+  }
+
+  getOrganizedMonth(month) {
+    var organizedMonth = [];
+    for (let i = 1; i < 32; i++) organizedMonth[i] = [];
+    for (var k in month) {
+      if (month.hasOwnProperty(k) && month[k].hasOwnProperty('start')){
+        var ev = month[k];
+        organizedMonth[ev.start.getDate()].push(ev);
+      }
+    }
+    return organizedMonth;
+  }
+
+  getMonth(desiredMonth, desiredYear) {
+    var year = this.getYear(desiredYear);
+    var month = {};
+    for (var k in year) {
+      if (year.hasOwnProperty(k) && year[k].hasOwnProperty('start')){
+        var ev = year[k];
+        if (ev.start.getMonth() == desiredMonth) {
+          month[k] = ev;
+        }
+      }
+    }
+    return month;
+  }
+
+  getMostRecentMonth() {
+    var today = new Date();
+    var year = today.getFullYear();
+    var month = today.getMonth();
+    while (this.getMonth(month, year) == null) {
+      month--;
+      if (month == -1) {
+        month = 11;
+        year--;
+      }
+    }
+    return this.getOrganizedMonth(this.getMonth(month, year));
+  }
+
+}
+
 
 function initialize() {
   document.getElementById('settingsButton').onclick = settingsFile.updateSettings;
@@ -341,6 +403,11 @@ function initialize() {
       if (err && err.code == 'ENOENT') { alert('Your output file cannot be found') }
       else { mileage.excelFile = new excel(outputFile) }
     })
+  }
+  if (calendarFile != "") {
+    //check if can be found
+    var calendar = new ics(calendarFile);
+    console.log(calendar.getMostRecentMonth());
   }
   DOM.createNewLocationInput(DOM.getInputElements()[0]);
   DOM.getDateElement().focus();
