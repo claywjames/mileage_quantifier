@@ -25,10 +25,21 @@ html, body{
   display: inline-block;
 }
 
+#calendar {
+  position: relative;
+  float: left;
+  width: 20%;
+  height: 80%;
+  top: 2%;
+  left: 2%;
+  border: 1px solid black;
+  text-align: center;
+}
+
 body > form{
   position: absolute;
   top: 10%;
-  left: 20%;
+  left: 40%;
 }
 
 .deleteInput {
