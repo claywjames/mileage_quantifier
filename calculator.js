@@ -5,6 +5,7 @@ const fs = require('fs')
 const xlsx = require('xlsx-style')
 const fuzzy = require('fuzzy')
 const ical = require('ical')
+const flatpickr = require('flatpickr')
 
 
 const DOM = {
@@ -27,7 +28,7 @@ const DOM = {
     return inputElements;
   },
 
-  getLocationInputElements(){
+  getLocationInputElements() {
     var locationInputElements = DOM.getInputElements().filter((element) => {
       if (element.className === "") return true;
       return false;
@@ -51,27 +52,27 @@ const DOM = {
     var deleteButtonList = document.getElementsByClassName('deleteInput')
     var newDeleteButton = deleteButtonList[deleteButtonList.length - 1];
     newDeleteButton.onclick = () => {
-      if(this.getLocationInputElements().length === 1) return false;
+      if (this.getLocationInputElements().length === 1) return false;
       this.getLocationsDiv().removeChild(newDeleteButton.previousElementSibling) //br
 
       //removes the correct amount of elements depending on if there is an address input
       var i = 2;
-      if(newDeleteButton.nextElementSibling.nextElementSibling.nextElementSibling.tagName === 'LABEL') i += 2;
-      for(i; i > 0; i--) this.getLocationsDiv().removeChild(newDeleteButton.nextElementSibling);
+      if (newDeleteButton.nextElementSibling.nextElementSibling.nextElementSibling.tagName === 'LABEL') i += 2;
+      for (i; i > 0; i--) this.getLocationsDiv().removeChild(newDeleteButton.nextElementSibling);
 
       this.getLocationsDiv().removeChild(newDeleteButton)
     }
     var addressButtonList = document.getElementsByClassName('showAddress');
     var newAddressButton = addressButtonList[addressButtonList.length - 1];
     newAddressButton.onclick = () => {
-      if(newAddressButton.nextElementSibling.tagName === 'LABEL'){
-        for(let i = 2; i > 0; i--) this.getLocationsDiv().removeChild(newAddressButton.nextElementSibling);
-      }else{
-        if(document.getElementById('suggestionBox')) document.body.removeChild(document.getElementById('suggestionBox'));
+      if (newAddressButton.nextElementSibling.tagName === 'LABEL') {
+        for (let i = 2; i > 0; i--) this.getLocationsDiv().removeChild(newAddressButton.nextElementSibling);
+      } else {
+        if (document.getElementById('suggestionBox')) document.body.removeChild(document.getElementById('suggestionBox'));
         this.createNewAddressInput(newAddressButton);
         var location = newAddressButton.previousElementSibling.value;
         var addressInput = newAddressButton.nextElementSibling.nextElementSibling;
-        if(savedAddresses.isLocation(location)){
+        if (savedAddresses.isLocation(location)) {
           addressInput.value = savedAddresses.locationsDict[location];
         }
       }
@@ -133,7 +134,7 @@ const mileage = {
   excelFile: null,
   baseURL: 'http://www.mapquestapi.com/directions/v2/route?key=MkRTKx7DbBySjsya4hnVsQ0bxgQgnbSy',
 
-  responseAmbiguitites(locations){
+  responseAmbiguitites(locations) {
     for (let i = 0; i < locations.length; i++) {
       if (!(locations[i].geocodeQualityCode.startsWith('P1') || locations[i].geocodeQualityCode.startsWith('L1'))) {
         DOM.resultsDiv.innerHTML += '<br>The exact location of address ' + (i + 1) + ' could not be accurately determined by mapquest.';
@@ -152,7 +153,7 @@ const mileage = {
         var results = JSON.parse(body)
         if (results.info.statuscode === 0) {
           var locations = results.route.locations;
-          if(this.responseAmbiguitites(locations)) return false;
+          if (this.responseAmbiguitites(locations)) return false;
           var miles = Math.round(results.route.distance)
           DOM.resultsDiv.innerHTML += '<br>Got response: ' + miles + ' miles';
           return miles;
@@ -167,7 +168,7 @@ const mileage = {
     DOM.resultsDiv.innerHTML += '<br>Queried Mapquest';
   },
 
-  getLocationString(locationArray){
+  getLocationString(locationArray) {
     //remove home locations
     locationArray.shift()
     locationArray.pop()
@@ -179,7 +180,7 @@ const mileage = {
 
   report(locations, addresses) {
     let mileage = this.calculateMileage(addresses);
-    if(!mileage) return;
+    if (!mileage) return;
     let date = DOM.getDateElement().value;
     let locationString = this.getLocationString(locations);
     this.excelFile.writeInfo(date, locationString, mileage);
@@ -273,7 +274,7 @@ const settingsFile = {
     return result;
   },
 
-  updateSettings(){
+  updateSettings() {
     const settingsCalendar = document.getElementById('settingsCalendar');
     const settingsHome = document.getElementById('settingsHome');
     const settingsOutput = document.getElementById('settingsOutput');
@@ -319,18 +320,22 @@ class ics {
   constructor(file) {
     this.file = file;
     this.contents = ical.parseFile(file);
+    this.currentYear = null;
+    this.currentMonth = null;
+    this.currentDay = null;
   }
 
   getYear(desiredYear) {
     var year = {};
     for (var k in this.contents) {
-      if (this.contents.hasOwnProperty(k) && this.contents[k].hasOwnProperty('start')){
+      if (this.contents.hasOwnProperty(k) && this.contents[k].hasOwnProperty('start')) {
         var ev = this.contents[k];
         if (ev.start.getFullYear() == desiredYear) {
           year[k] = ev;
         }
       }
     }
+    this.currentYear = desiredYear;
     return year;
   }
 
@@ -338,7 +343,7 @@ class ics {
     var organizedMonth = [];
     for (let i = 1; i < 32; i++) organizedMonth[i] = [];
     for (var k in month) {
-      if (month.hasOwnProperty(k) && month[k].hasOwnProperty('start')){
+      if (month.hasOwnProperty(k) && month[k].hasOwnProperty('start')) {
         var ev = month[k];
         organizedMonth[ev.start.getDate()].push(ev);
       }
@@ -350,14 +355,15 @@ class ics {
     var year = this.getYear(desiredYear);
     var month = {};
     for (var k in year) {
-      if (year.hasOwnProperty(k) && year[k].hasOwnProperty('start')){
+      if (year.hasOwnProperty(k) && year[k].hasOwnProperty('start')) {
         var ev = year[k];
         if (ev.start.getMonth() == desiredMonth) {
           month[k] = ev;
         }
       }
     }
-    return month;
+    this.currentMonth = desiredMonth;
+    return this.getOrganizedMonth(month);
   }
 
   getMostRecentMonth() {
@@ -371,7 +377,38 @@ class ics {
         year--;
       }
     }
-    return this.getOrganizedMonth(this.getMonth(month, year));
+    return this.getMonth(month, year);
+  }
+
+  getDay(desiredDay, desiredMonth, desiredYear) {
+    var month = this.getMonth(desiredMonth, desiredYear);
+    this.currentDay = desiredDay;
+    return month[desiredDay];
+  }
+
+  getMostRecentDay() {
+    var mostRecentMonth = this.getMostRecentMonth();
+    for (let i = mostRecentMonth.length - 1; i > 0; i--) {
+      if (mostRecentMonth[i].length === 0) continue;
+      this.currentDay = i;
+      var mostRecentDay = mostRecentMonth[i];
+      break;
+    }
+    return mostRecentDay;
+  }
+
+  getNextDay() {
+    do {
+      if (this.getDay(this.currentDay + 1, this.currentMonth, this.currentYear) === null) { // <--- calling getDay with currentDay + 1 automatically increments currentDay so there is no need for an else statement
+        this.currentDay = 1;
+        this.currentMonth++;
+        if (this.currentMonth === 12) {
+          this.currentMonth = 0;
+          this.currentYear++;
+        }
+      } 
+    } while (this.getDay(this.currentDay, this.currentMonth, this.currentYear).length === 0)
+    return (this.getDay(this.currentDay, this.currentMonth, this.currentYear));
   }
 
 }
@@ -407,7 +444,7 @@ function initialize() {
   if (calendarFile != "") {
     //check if can be found
     var calendar = new ics(calendarFile);
-    console.log(calendar.getMostRecentMonth());
+    var datePicker = flatpickr('#datePicker');
   }
   DOM.createNewLocationInput(DOM.getInputElements()[0]);
   DOM.getDateElement().focus();

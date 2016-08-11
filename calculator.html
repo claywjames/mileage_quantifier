@@ -3,6 +3,8 @@
   <head>
     <link href = 'calculator.css' rel='stylesheet' type='text/css'>
     <link href = 'titleBar.css' rel = 'stylesheet' type = 'text/css'>
+    <link href = 'node_modules\flatpickr\dist\flatpickr.min.css' rel = 'stylesheet' type = 'text/css'>
+    <script src = 'node_modules\flatpickr\dist\flatpickr.min.js'></script>
   </head>
   <body>
     <div id = 'titleBar'>
@@ -22,7 +24,9 @@
         <input id = 'settingsButton' type = 'button' value = 'update'>
       </form>
     </div>
-    <div id = calendar>Calendar:
+    <div id = calendar>
+      Calendar:<br>
+      <input id = datePicker>
     </div>
     <form id = 'locationsForm' onsubmit = 'return false'>
       <label>Date: <input id = 'date'></label><br>
