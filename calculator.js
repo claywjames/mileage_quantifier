@@ -80,6 +80,7 @@ const DOM = {
       }
     }
     newDeleteButton.focus() //since this method runs before default tab actions occur, we must focus on the element before the one we want to actually be focused after a tab
+    
   },
 
   createNewAddressInput(adjacentElement) {
@@ -91,6 +92,7 @@ const DOM = {
       if (suggestions.length == 0) return false;
       var suggestionBox = document.createElement('div');
       suggestionBox.id = 'suggestionBox';
+      suggestionBox.style.top = (25 + this.getLocationInputElements().length * 2).toString() + '%';
       document.body.appendChild(suggestionBox)
       for (let i = 0; i < suggestions.length; i++) {
         let suggestion = document.createElement('div');
