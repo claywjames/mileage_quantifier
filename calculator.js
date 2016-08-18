@@ -19,6 +19,8 @@ const DOM = {
 
   getSubmitButton() { return document.getElementById('submit') },
 
+  getEventsDiv() { return document.getElementById('events') },
+
   getInputElements() {
     let childArray = Array.prototype.slice.call(this.getLocationsDiv().childNodes) //converts childNodes object list into an array
     let inputElements = childArray.filter((element) => {
@@ -126,12 +128,24 @@ const DOM = {
       "<br><input id = 'submit', type = 'submit'>";
     DOM.createNewLocationInput(DOM.getInputElements()[0]);
     this.getSubmitButton().onclick = function () { submit() };
+  },
+
+  resetCalendar() {
+    this.getEventsDiv().innerHTML = "";
+  },
+
+  displayCalendarDay(day) {
+    this.resetCalendar();
+    for (let i = 0; i < day.length; i++) {
+      this.getEventsDiv().innerHTML += "<br>Summary: " + day[i].summary + "<br>" + "Location: " + day[i].location + "<br>";
+    }
   }
 }
 
 const mileage = {
   //The object that interacts with the mapquest API and reports the mileage results
   excelFile: null,
+  calendar: null,
   baseURL: 'http://www.mapquestapi.com/directions/v2/route?key=MkRTKx7DbBySjsya4hnVsQ0bxgQgnbSy',
 
   responseAmbiguitites(locations) {
@@ -144,7 +158,7 @@ const mileage = {
     return false;
   },
 
-  calculateMileage(addresses) {
+  calculateMileage(locations, addresses) {
     var url = this.baseURL + '&from=' + addresses[0];
     for (let i = 1; i < addresses.length; i++) url += '&to=' + addresses[i];
     url = url.replace('#', '%23'); //URI replacement of number sign to prevent errors
@@ -152,11 +166,11 @@ const mileage = {
       if (!error && response.statusCode == 200) {
         var results = JSON.parse(body)
         if (results.info.statuscode === 0) {
-          var locations = results.route.locations;
-          if (this.responseAmbiguitites(locations)) return false;
+          var returnedLocations = results.route.locations;
+          if (this.responseAmbiguitites(returnedLocations)) return false;
           var miles = Math.round(results.route.distance)
           DOM.resultsDiv.innerHTML += '<br>Got response: ' + miles + ' miles';
-          return miles;
+          this.report(locations, miles);
         } else {
           DOM.resultsDiv.innerHTML += '<br>Recieved bad response from Mapquest. Please check addresses for errors.';
           console.log(results);
@@ -178,16 +192,14 @@ const mileage = {
     return locationString;
   },
 
-  report(locations, addresses) {
-    let mileage = this.calculateMileage(addresses);
-    if (!mileage) return;
+  report(locations, mileage) {
     let date = DOM.getDateElement().value;
     let locationString = this.getLocationString(locations);
     this.excelFile.writeInfo(date, locationString, mileage);
-    DOM.resultsDiv.innerHTML += '<br>' + this.excelFile.file + ' updated';
     DOM.resetInputForm();
     DOM.setHomeInputs();
     DOM.getDateElement().focus();
+    DOM.displayCalendarDay(this.calendar.getNextDay());
   }
 }
 
@@ -340,61 +352,25 @@ class ics {
   }
 
   getOrganizedMonth(month) {
-    var organizedMonth = [];
-    for (let i = 1; i < 32; i++) organizedMonth[i] = [];
-    for (var k in month) {
-      if (month.hasOwnProperty(k) && month[k].hasOwnProperty('start')) {
-        var ev = month[k];
-        organizedMonth[ev.start.getDate()].push(ev);
-      }
-    }
+    var organizedMonth = {};
+    for (var j in month) organizedMonth[month[j].start.getDate()] = [];
+    for (var k in month) organizedMonth[month[k].start.getDate()].push(month[k]);
     return organizedMonth;
   }
 
   getMonth(desiredMonth, desiredYear) {
     var year = this.getYear(desiredYear);
     var month = {};
-    for (var k in year) {
-      if (year.hasOwnProperty(k) && year[k].hasOwnProperty('start')) {
-        var ev = year[k];
-        if (ev.start.getMonth() == desiredMonth) {
-          month[k] = ev;
-        }
-      }
-    }
+    for (var k in year) if (year[k].start.getMonth() == desiredMonth) month[k] = year[k];
     this.currentMonth = desiredMonth;
     return this.getOrganizedMonth(month);
-  }
-
-  getMostRecentMonth() {
-    var today = new Date();
-    var year = today.getFullYear();
-    var month = today.getMonth();
-    while (this.getMonth(month, year) == null) {
-      month--;
-      if (month == -1) {
-        month = 11;
-        year--;
-      }
-    }
-    return this.getMonth(month, year);
   }
 
   getDay(desiredDay, desiredMonth, desiredYear) {
     var month = this.getMonth(desiredMonth, desiredYear);
     this.currentDay = desiredDay;
-    return month[desiredDay];
-  }
-
-  getMostRecentDay() {
-    var mostRecentMonth = this.getMostRecentMonth();
-    for (let i = mostRecentMonth.length - 1; i > 0; i--) {
-      if (mostRecentMonth[i].length === 0) continue;
-      this.currentDay = i;
-      var mostRecentDay = mostRecentMonth[i];
-      break;
-    }
-    return mostRecentDay;
+    if (month[desiredDay]) { return month[desiredDay] };
+    return false;
   }
 
   getNextDay() {
@@ -442,9 +418,29 @@ function initialize() {
     })
   }
   if (calendarFile != "") {
-    //check if can be found
-    var calendar = new ics(calendarFile);
-    var datePicker = flatpickr('#datePicker');
+    fs.stat(calendarFile, (err) => {
+      if (err && err.code == 'ENOENT') { alert('Your calendar file cannot be found') }
+      else {
+        mileage.calendar = new ics(calendarFile);
+        var datePicker = flatpickr('#datePicker', {
+          onChange: function(dateObj, dateStr) {
+            var dateArray = dateStr.split('-');
+            DOM.displayCalendarDay(mileage.calendar.getDay(Number(dateArray[2]), Number(dateArray[1]) - 1, Number(dateArray[0])));
+          },
+          disable: [
+            function(date) {
+              var year = date.getFullYear();
+              var month = date.getMonth();
+              var day = date.getDate();
+              return !mileage.calendar.getDay(day, month, year);
+            }
+          ]
+        });
+        //
+        //save most recent date and open from there
+        //
+      }
+    })
   }
   DOM.createNewLocationInput(DOM.getInputElements()[0]);
   DOM.getDateElement().focus();
@@ -539,5 +535,5 @@ function submit() {
   var addresses = [];
   for (let i = 0; i < locations.length; i++) addresses[i] = savedAddresses.locationsDict[locations[i]];
   DOM.resultsDiv.innerHTML += '<br>Converted locations to addresses';
-  mileage.report(locations, addresses);
+  mileage.calculateMileage(locations, addresses);
 }
