@@ -139,6 +139,9 @@ const DOM = {
     for (let i = 0; i < day.length; i++) {
       this.getEventsDiv().innerHTML += "<br>Summary: " + day[i].summary + "<br>" + "Location: " + day[i].location + "<br>";
     }
+    let date = (mileage.calendar.currentMonth + 1) + '-' + mileage.calendar.currentDay;
+    document.getElementById('datePicker').value = mileage.calendar.currentYear + '-' + date;
+    this.getDateElement().value = date;
   }
 }
 
@@ -337,7 +340,7 @@ class ics {
     this.currentDay = null;
   }
 
-  getYear(desiredYear) {
+  getYear(desiredYear, caller) {
     var year = {};
     for (var k in this.contents) {
       if (this.contents.hasOwnProperty(k) && this.contents[k].hasOwnProperty('start')) {
@@ -347,7 +350,7 @@ class ics {
         }
       }
     }
-    this.currentYear = desiredYear;
+    if (caller != 'disable') this.currentYear = desiredYear; //see getDay
     return year;
   }
 
@@ -358,24 +361,27 @@ class ics {
     return organizedMonth;
   }
 
-  getMonth(desiredMonth, desiredYear) {
-    var year = this.getYear(desiredYear);
+  getMonth(desiredMonth, desiredYear, caller) {
+    var year = this.getYear(desiredYear, caller);
     var month = {};
     for (var k in year) if (year[k].start.getMonth() == desiredMonth) month[k] = year[k];
-    this.currentMonth = desiredMonth;
+    if (caller != 'disable') this.currentMonth = desiredMonth; //see getDay
     return this.getOrganizedMonth(month);
   }
 
-  getDay(desiredDay, desiredMonth, desiredYear) {
-    var month = this.getMonth(desiredMonth, desiredYear);
-    this.currentDay = desiredDay;
-    if (month[desiredDay]) { return month[desiredDay] };
-    return false;
+  getDay(desiredDay, desiredMonth, desiredYear, caller) {
+    var month = this.getMonth(desiredMonth, desiredYear, caller);
+    if (caller != 'disable') this.currentDay = desiredDay; //flatpickr uses this function to disable days with no events
+    if (month[desiredDay]) {
+      return month[desiredDay]
+    } else {
+      return false;
+    }
   }
 
   getNextDay() {
     do {
-      if (this.getDay(this.currentDay + 1, this.currentMonth, this.currentYear) === null) { // <--- calling getDay with currentDay + 1 automatically increments currentDay so there is no need for an else statement
+      if (++this.currentDay > 31) {
         this.currentDay = 1;
         this.currentMonth++;
         if (this.currentMonth === 12) {
@@ -383,7 +389,7 @@ class ics {
           this.currentYear++;
         }
       } 
-    } while (this.getDay(this.currentDay, this.currentMonth, this.currentYear).length === 0)
+    } while (this.getDay(this.currentDay, this.currentMonth, this.currentYear) === false)
     return (this.getDay(this.currentDay, this.currentMonth, this.currentYear));
   }
 
@@ -423,6 +429,7 @@ function initialize() {
       else {
         mileage.calendar = new ics(calendarFile);
         var datePicker = flatpickr('#datePicker', {
+          allowInput: true,
           onChange: function(dateObj, dateStr) {
             var dateArray = dateStr.split('-');
             DOM.displayCalendarDay(mileage.calendar.getDay(Number(dateArray[2]), Number(dateArray[1]) - 1, Number(dateArray[0])));
@@ -432,13 +439,10 @@ function initialize() {
               var year = date.getFullYear();
               var month = date.getMonth();
               var day = date.getDate();
-              return !mileage.calendar.getDay(day, month, year);
+              return !mileage.calendar.getDay(day, month, year, 'disable');
             }
           ]
         });
-        //
-        //save most recent date and open from there
-        //
       }
     })
   }
