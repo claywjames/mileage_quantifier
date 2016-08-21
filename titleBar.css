@@ -3,7 +3,7 @@
 	height: 32px;
 	padding: 0px;
     margin: 0px;
-	color: #2E4053;
+	color: #333333;
 	font-family: sans-serif;
 }
 
@@ -27,11 +27,11 @@
 	width: 32px;
 	background-color: transparent;
 	border: none;
-	color: #2E4053;
+	color: #333333;
 	font-size: 16px;
 }
 
 #titleBarButtons button:hover {
-	background-color: #3F3F41;
-  color: white;
+	background-color: #333333;
+  color: lightgrey;
 }

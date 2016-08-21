@@ -2,11 +2,13 @@ html, body{
   height: 100%;
   margin: 0;
   font-family: sans-serif;
+  background-color: lightgrey;
 }
 
 #settings {
   position: relative;
-  background-color: #CAD8EC;
+  background-color: #333333;
+  color: white;
   top: 1%;
   left: 1%;
   height: 5%;
@@ -27,12 +29,14 @@ html, body{
 
 #calendar {
   position: relative;
+  background-color: #333333;
+  color: white;
+  border-radius: 20px;
   float: left;
   width: 20%;
   height: 80%;
   top: 2%;
   left: 2%;
-  border: 1px solid black;
   text-align: center;
 }
 
@@ -49,12 +53,14 @@ body > form{
 
 #results {
   position: relative;
+  background-color: #333333;
+  color: white;
+  border-radius: 20px;
   float: right;
   top: 2%;
   right: 2%;
   width: 20%;
   height: 80%;
-  border: 1px solid black;
   text-align: center;
 }
 
