@@ -11,12 +11,15 @@ header {
     border: 0px;
     width: 100%;
     text-align: center;
+    color: white;
+    text-shadow: 2px 2px black;
 }
 
 header ~ button {
     position: absolute;
-    background-color: #325392;
+    background-color: #333333;
     border: none;
+    border-radius: 20px;
     font-size: 40px;
     font-family: sans-serif;
     width: 20%;

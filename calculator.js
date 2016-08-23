@@ -84,7 +84,7 @@ const DOM = {
   },
 
   createNewAddressInput(adjacentElement) {
-    adjacentElement.insertAdjacentHTML('afterend', '<label>Address: </label><input size = 50 class="address">')
+    adjacentElement.insertAdjacentHTML('afterend', '<label>  Address: </label><input size = 50 class="address">')
   },
 
   displaySuggestions(suggestions) {
