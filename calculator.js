@@ -141,8 +141,8 @@ const DOM = {
     for (let i = 0; i < day.length; i++) {
       this.getEventsDiv().innerHTML += "<br>Summary: " + day[i].summary + "<br>" + "Location: " + day[i].location + "<br>";
     }
-    let date = (mileage.calendar.currentMonth + 1) + '-' + mileage.calendar.currentDay;
-    document.getElementById('datePicker').value = mileage.calendar.currentYear + '-' + date;
+    let date = (day[0].start.getMonth() + 1) + '-' + day[0].start.getDate();
+    document.getElementById('datePicker').value = day[0].start.getFullYear() + '-' + date;
     this.getDateElement().value = date;
   }
 }
@@ -337,62 +337,66 @@ class ics {
   constructor(file) {
     this.file = file;
     this.contents = ical.parseFile(file);
-    this.currentYear = null;
-    this.currentMonth = null;
-    this.currentDay = null;
+    this.organizedCalendar = this.organizeCalendar();
   }
 
-  getYear(desiredYear, caller) {
-    var year = {};
+  organizeCalendar() {
+    var organizedCalendar = {}
     for (var k in this.contents) {
       if (this.contents.hasOwnProperty(k) && this.contents[k].hasOwnProperty('start')) {
         var ev = this.contents[k];
-        if (ev.start.getFullYear() == desiredYear) {
-          year[k] = ev;
+        var year = ev.start.getFullYear();
+        var month = ev.start.getMonth();
+        var date = ev.start.getDate();
+        if (organizedCalendar[year]) {
+          if (organizedCalendar[year][month]) {
+            if (organizedCalendar[year][month][date]) {
+              var day = organizedCalendar[year][month][date];
+              for(var i = 0; i < day.length; i++) if(day[i].start.valueOf() > ev.start.valueOf()) break;
+              day = day.splice(i, 0, ev);
+            } else {
+              organizedCalendar[year][month][date] = [ev];
+            }
+          } else {
+            organizedCalendar[year][month] = {}
+            organizedCalendar[year][month][date] = [ev];
+          }
+        } else {
+          organizedCalendar[year] = {}
+          organizedCalendar[year][month] = {}
+          organizedCalendar[year][month][date] = [ev];
         }
       }
     }
-    if (caller != 'disable') this.currentYear = desiredYear; //see getDay
-    return year;
+    return organizedCalendar;
   }
 
-  getOrganizedMonth(month) {
-    var organizedMonth = {};
-    for (var j in month) organizedMonth[month[j].start.getDate()] = [];
-    for (var k in month) organizedMonth[month[k].start.getDate()].push(month[k]);
-    return organizedMonth;
-  }
-
-  getMonth(desiredMonth, desiredYear, caller) {
-    var year = this.getYear(desiredYear, caller);
-    var month = {};
-    for (var k in year) if (year[k].start.getMonth() == desiredMonth) month[k] = year[k];
-    if (caller != 'disable') this.currentMonth = desiredMonth; //see getDay
-    return this.getOrganizedMonth(month);
-  }
-
-  getDay(desiredDay, desiredMonth, desiredYear, caller) {
-    var month = this.getMonth(desiredMonth, desiredYear, caller);
-    if (caller != 'disable') this.currentDay = desiredDay; //flatpickr uses this function to disable days with no events
-    if (month[desiredDay]) {
-      return month[desiredDay]
+  getDay(desiredDay, desiredMonth, desiredYear) {
+    this.currentDay = desiredDay;
+    if (this.organizedCalendar[desiredYear][desiredMonth][desiredDay]) {
+      return this.organizedCalendar[desiredYear][desiredMonth][desiredDay];
     } else {
       return false;
     }
   }
 
-  getNextDay() {
-    do {
-      if (++this.currentDay > 31) {
-        this.currentDay = 1;
-        this.currentMonth++;
-        if (this.currentMonth === 12) {
-          this.currentMonth = 0;
-          this.currentYear++;
+  getNextDay() { 
+    var date = document.getElementById('datePicker').value;
+    var date = date.split('-');
+    var year = Number(date[0]);
+    var month = Number(date[1]) - 1;
+    var day = Number(date[2]);
+    while (!this.organizedCalendar[year][month][++day]) {
+      if (day > 31) {
+        day = 1;
+        month++;
+        if (month === 12) {
+          month = 0;
+          year++;
         }
-      } 
-    } while (this.getDay(this.currentDay, this.currentMonth, this.currentYear) === false)
-    return (this.getDay(this.currentDay, this.currentMonth, this.currentYear));
+      }
+    }
+    return (this.getDay(day, month, year));
   }
 
 }
@@ -441,7 +445,7 @@ function initialize() {
               var year = date.getFullYear();
               var month = date.getMonth();
               var day = date.getDate();
-              return !mileage.calendar.getDay(day, month, year, 'disable');
+              return !mileage.calendar.getDay(day, month, year);
             }
           ]
         });
