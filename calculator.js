@@ -138,6 +138,7 @@ const DOM = {
 
   displayCalendarDay(day) {
     this.resetCalendar();
+    if (!day) return false;
     for (let i = 0; i < day.length; i++) {
       this.getEventsDiv().innerHTML += "<br>Summary: " + day[i].summary + "<br>" + "Location: " + day[i].location + "<br>";
     }
@@ -157,6 +158,7 @@ const mileage = {
     for (let i = 0; i < locations.length; i++) {
       if (!(locations[i].geocodeQualityCode.startsWith('P1') || locations[i].geocodeQualityCode.startsWith('L1'))) {
         DOM.resultsDiv.innerHTML += '<br>The exact location of address ' + (i + 1) + ' could not be accurately determined by mapquest.';
+        console.log(locations[i].geocodeQualityCode);
         return true;
       }
     }
@@ -177,8 +179,7 @@ const mileage = {
           DOM.resultsDiv.innerHTML += '<br>Got response: ' + miles + ' miles';
           this.report(locations, miles);
         } else {
-          DOM.resultsDiv.innerHTML += '<br>Recieved bad response from Mapquest. Please check addresses for errors.';
-          console.log(results);
+          DOM.resultsDiv.innerHTML += '<br>Recieved bad response from Mapquest.  Status code: ' + results.info.statuscode;
         }
       } else {
         DOM.resultsDiv.innerHTML += '<br>Internet Error.';
@@ -382,6 +383,7 @@ class ics {
 
   getNextDay() { 
     var date = document.getElementById('datePicker').value;
+    if (!date) return false;
     var date = date.split('-');
     var year = Number(date[0]);
     var month = Number(date[1]) - 1;
