@@ -390,7 +390,7 @@ class ics {
     var day = Number(date[2]);
     while (!this.organizedCalendar[year][month][++day]) {
       if (day > 31) {
-        day = 1;
+        day = 0;
         month++;
         if (month === 12) {
           month = 0;
