@@ -223,7 +223,6 @@ const savedAddresses = {
   },
 
   saveAddress(location, address) {
-    this.locationsDict[location] = address;
     if (this.isLocation(location)) {
       let file = fs.readFileSync(this.addressFile, 'utf8');
       let oldAddress = this.locationsDict[location];
@@ -233,6 +232,7 @@ const savedAddresses = {
     } else {
       fs.appendFileSync(this.addressFile, location + '::' + address + '\n')
     }
+    this.locationsDict[location] = address;
   },
 
   generateLocations() {
