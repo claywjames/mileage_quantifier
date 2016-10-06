@@ -233,6 +233,7 @@ const savedAddresses = {
       fs.appendFileSync(this.addressFile, location + '::' + address + '\n')
     }
     this.locationsDict[location] = address;
+    this.locationsList.push(location);
   },
 
   generateLocations() {
