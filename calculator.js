@@ -1,12 +1,12 @@
 'use strict';
 
-const request = require('request')
-const fs = require('fs')
-const xlsx = require('xlsx-style')
-const fuzzy = require('fuzzy')
-const ical = require('ical')
-const flatpickr = require('flatpickr')
-
+const request = require('request'),
+      fs = require('fs'),
+      xlsx = require('xlsx-style'),
+      fuzzy = require('fuzzy'),
+      ical = require('ical'),
+      flatpickr = require('flatpickr'),
+      open = require('open')
 
 const DOM = {
   resultsDiv: document.getElementById('results'),
@@ -59,7 +59,7 @@ const DOM = {
 
       //removes the correct amount of elements depending on if there is an address input
       var i = 2;
-      if (newDeleteButton.nextElementSibling.nextElementSibling.nextElementSibling.tagName === 'LABEL') i += 2;
+      if (newDeleteButton.nextElementSibling.nextElementSibling.nextElementSibling.tagName === 'LABEL') i += 3;
       for (i; i > 0; i--) this.getLocationsDiv().removeChild(newDeleteButton.nextElementSibling);
 
       this.getLocationsDiv().removeChild(newDeleteButton)
@@ -68,7 +68,7 @@ const DOM = {
     var newAddressButton = addressButtonList[addressButtonList.length - 1];
     newAddressButton.onclick = () => {
       if (newAddressButton.nextElementSibling.tagName === 'LABEL') {
-        for (let i = 2; i > 0; i--) this.getLocationsDiv().removeChild(newAddressButton.nextElementSibling);
+        for (let i = 3; i > 0; i--) this.getLocationsDiv().removeChild(newAddressButton.nextElementSibling);
       } else {
         if (document.getElementById('suggestionBox')) document.body.removeChild(document.getElementById('suggestionBox'));
         this.createNewAddressInput(newAddressButton);
@@ -84,7 +84,17 @@ const DOM = {
   },
 
   createNewAddressInput(adjacentElement) {
-    adjacentElement.insertAdjacentHTML('afterend', '<label>  Address: </label><input size = 50 class="address">')
+    adjacentElement.insertAdjacentHTML('afterend', '<label>  Address: </label><input size = 50 class="address"><button class = "search">S</button>')
+    var searchButtonList = document.getElementsByClassName('search');
+    var newSearchButton = searchButtonList[searchButtonList.length - 1];
+    newSearchButton.onclick = () => {
+      var locationInput = newSearchButton.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.value;
+      var locationInputPieces = locationInput.split('-');
+      var place = locationInputPieces[0];
+      var city = locationInputPieces[1];
+      var searchQuery = 'https://www.google.com/#q=' + place + "+" + city + "+" + "address";
+      open(searchQuery);
+    }
   },
 
   displaySuggestions(suggestions) {
@@ -466,7 +476,7 @@ document.addEventListener('keydown', event => {
 
     if (event.keyCode === 9) { //tab
       if (document.activeElement.className === 'address') {
-        DOM.createNewLocationInput(document.activeElement);
+        DOM.createNewLocationInput(document.activeElement.nextElementSibling);
       } else if(document.activeElement.className === ""){
         if (savedAddresses.isLocation(document.activeElement.value)) {
           if (document.activeElement.nextElementSibling.nextElementSibling.tagName !== 'LABEL') {
